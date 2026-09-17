@@ -1,0 +1,82 @@
+{
+  "format": "freehorse.mapdef",
+  "formatVersion": "1.1.0",
+  "id": "synthetic-example",
+  "name": "Synthetic calibration definition",
+  "description": "Legally redistributable mapdef example containing no production ECU data.",
+  "compatibility": {
+    "manufacturers": ["Example"],
+    "ecuFamilies": ["SyntheticECU"],
+    "softwareIds": ["EXAMPLE-1"],
+    "imageSizes": [1024]
+  },
+  "provenance": {
+    "author": "FreeBeamer contributors",
+    "license": "MIT",
+    "source": "synthetic",
+    "sourceFormat": "mapdef"
+  },
+  "memory": {
+    "baseOffset": 0,
+    "segments": [{"id": "image", "name": "Binary image", "start": 0, "size": 1024, "type": "flash"}]
+  },
+  "categories": [{"id": "boost", "name": "Boost"}, {"id": "trans", "name": "Transmission"}],
+  "parameters": [
+    {
+      "id": "boost-target",
+      "kind": "curve",
+      "name": "Boost target",
+      "categories": ["boost"],
+      "layout": {
+        "address": 512,
+        "dataType": "uint16",
+        "byteOrder": "little",
+        "dimensions": [1, 2],
+        "order": "row-major",
+        "strideBits": [0, 0]
+      },
+      "axes": {
+        "x": {
+          "count": 2,
+          "layout": {"address": 256, "dataType": "uint16", "byteOrder": "little", "dimensions": [2], "order": "not-applicable", "strideBits": [0, 0]},
+          "unit": "rpm",
+          "conversion": {"language": "freehorse-expression-v1", "expression": "X*10"}
+        }
+      },
+      "unit": "kPa",
+      "conversion": {"language": "freehorse-expression-v1", "expression": "X*0.1"},
+      "display": {"decimalPlaces": 2, "outputType": 2, "min": 0, "max": 25}
+    },
+    {
+      "id": "gear-table",
+      "kind": "curve",
+      "name": "Per-gear shift delay",
+      "description": "mapdef 1.1 example: the x axis has no address/formula of its own, only static breakpoint labels.",
+      "categories": ["trans"],
+      "layout": {
+        "address": 768,
+        "dataType": "uint8",
+        "byteOrder": "not-applicable",
+        "dimensions": [1, 4],
+        "order": "row-major"
+      },
+      "axes": {
+        "x": {
+          "count": 4,
+          "conversion": {"language": "freehorse-expression-v1", "expression": "X"},
+          "staticValues": [
+            {"index": 0, "value": "Park"},
+            {"index": 1, "value": "Reverse"},
+            {"index": 2, "value": "Neutral"},
+            {"index": 3, "value": "Drive"}
+          ]
+        }
+      },
+      "unit": "ms",
+      "conversion": {"language": "freehorse-expression-v1", "expression": "X*10"}
+    }
+  ],
+  "checksumRequirements": [],
+  "importDiagnostics": [],
+  "extensions": {}
+}

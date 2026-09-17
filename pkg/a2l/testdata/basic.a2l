@@ -1,0 +1,417 @@
+/* Synthetic A2L fixture authored for FreeBeamer. Contains no production ECU
+   data and no text copied from any third-party A2L file; see
+   docs/a2l-v0-plan.md for how its syntax was verified against independent
+   open-source A2L implementations. */
+ASAP2_VERSION 1 61
+/begin PROJECT SyntheticExample ""
+  /begin HEADER "Synthetic FreeBeamer A2L fixture"
+    VERSION "1.0"
+  /end HEADER
+  /begin MODULE Example ""
+    /begin MOD_COMMON ""
+      DEPOSIT ABSOLUTE
+      BYTE_ORDER MSB_LAST
+      ALIGNMENT_BYTE 1
+      ALIGNMENT_WORD 2
+      ALIGNMENT_LONG 4
+      ALIGNMENT_FLOAT32_IEEE 4
+      ALIGNMENT_FLOAT64_IEEE 4
+    /end MOD_COMMON
+
+    /begin COMPU_METHOD CM.IDENTICAL
+      "Identity conversion"
+      IDENTICAL "%3.0" "counts"
+    /end COMPU_METHOD
+
+    /begin COMPU_METHOD CM.LINEAR.BOOST
+      "Linear boost pressure conversion"
+      LINEAR "%5.1" "kPa"
+      COEFFS_LINEAR 0.1 0
+    /end COMPU_METHOD
+
+    /begin COMPU_METHOD CM.TAB_VERB.GEAR
+      "Gear position labels"
+      TAB_VERB "%3.0" ""
+      COMPU_TAB_REF CM.TAB_VERB.GEAR.REF
+    /end COMPU_METHOD
+
+    /begin COMPU_VTAB CM.TAB_VERB.GEAR.REF
+      "Gear position text"
+      TAB_VERB 4
+      0 "Park"
+      1 "Reverse"
+      2 "Neutral"
+      3 "Drive"
+      DEFAULT_VALUE "unknown gear"
+    /end COMPU_VTAB
+
+    /begin COMPU_VTAB_RANGE CM.TAB_VERB.PRESSURE_BAND.REF
+      "Pressure band text, not referenced by any characteristic in this slice"
+      3
+      0 49 "Low"
+      50 99 "Normal"
+      100 255 "High"
+      DEFAULT_VALUE "out of range"
+    /end COMPU_VTAB_RANGE
+
+    /begin COMPU_METHOD CM.RAT_FUNC.SCALE
+      "rational function, phys = int * 5"
+      RAT_FUNC "%4.0" "counts"
+      COEFFS 0 5 0 0 0 1
+    /end COMPU_METHOD
+
+    /begin COMPU_METHOD CM.FORM.PLUS4
+      "formula, phys = int + 4"
+      FORM
+      "%3.0"
+      "counts"
+      /begin FORMULA
+        "X1+4"
+        FORMULA_INV "X1-4"
+      /end FORMULA
+    /end COMPU_METHOD
+
+    /begin COMPU_METHOD CM.TAB_INTP.RPM
+      "interpolated numeric lookup"
+      TAB_INTP "%4.0" "rpm"
+      COMPU_TAB_REF CM.TAB_INTP.RPM.REF
+    /end COMPU_METHOD
+
+    /begin COMPU_TAB CM.TAB_INTP.RPM.REF
+      "interpolated table"
+      TAB_INTP
+      3
+      0 100
+      10 110
+      20 130
+      DEFAULT_VALUE_NUMERIC 999
+    /end COMPU_TAB
+
+    /begin COMPU_METHOD CM.TAB_NOINTP.GEAR
+      "exact numeric lookup"
+      TAB_NOINTP "%4.0" "ratio"
+      COMPU_TAB_REF CM.TAB_NOINTP.GEAR.REF
+    /end COMPU_METHOD
+
+    /begin COMPU_TAB CM.TAB_NOINTP.GEAR.REF
+      "exact table"
+      TAB_NOINTP
+      3
+      0 100
+      1 110
+      2 130
+    /end COMPU_TAB
+
+    /begin RECORD_LAYOUT RL.UBYTE
+      FNC_VALUES 1 UBYTE ROW_DIR DIRECT
+    /end RECORD_LAYOUT
+
+    /begin RECORD_LAYOUT RL.SBYTE
+      FNC_VALUES 1 SBYTE ROW_DIR DIRECT
+    /end RECORD_LAYOUT
+
+    /begin RECORD_LAYOUT RL.UWORD
+      FNC_VALUES 1 UWORD ROW_DIR DIRECT
+    /end RECORD_LAYOUT
+
+    /begin RECORD_LAYOUT RL.SWORD
+      FNC_VALUES 1 SWORD ROW_DIR DIRECT
+    /end RECORD_LAYOUT
+
+    /begin RECORD_LAYOUT RL.CURVE.UBYTE
+      NO_AXIS_PTS_X 1 UBYTE
+      AXIS_PTS_X 2 UBYTE INDEX_INCR DIRECT
+      FNC_VALUES 3 UBYTE ROW_DIR DIRECT
+    /end RECORD_LAYOUT
+
+    /begin RECORD_LAYOUT RL.MAP.UBYTE
+      NO_AXIS_PTS_X 1 UBYTE
+      NO_AXIS_PTS_Y 2 UBYTE
+      AXIS_PTS_X 3 UBYTE INDEX_INCR DIRECT
+      AXIS_PTS_Y 4 UBYTE INDEX_INCR DIRECT
+      FNC_VALUES 5 UBYTE ROW_DIR DIRECT
+    /end RECORD_LAYOUT
+
+    /begin RECORD_LAYOUT RL.AXIS_PTS.UBYTE
+      AXIS_PTS_X 1 UBYTE INDEX_INCR DIRECT
+    /end RECORD_LAYOUT
+
+    /begin RECORD_LAYOUT RL.CURVE.COM_AXIS.UBYTE
+      FNC_VALUES 1 UBYTE ROW_DIR DIRECT
+    /end RECORD_LAYOUT
+
+    /begin RECORD_LAYOUT RL.AXIS_PTS.RESCALE
+      NO_RESCALE_X 1 UBYTE
+      RESERVED 2 BYTE
+      AXIS_RESCALE_X 3 UBYTE 3 INDEX_INCR DIRECT
+    /end RECORD_LAYOUT
+
+    /begin AXIS_PTS AXIS_PTS.RPM_SHARED
+      "Shared RPM axis"
+      0x400
+      M.RPM
+      RL.AXIS_PTS.UBYTE
+      0
+      CM.IDENTICAL
+      3
+      0 255
+      DISPLAY_IDENTIFIER DI.AXIS_PTS.RPM_SHARED
+    /end AXIS_PTS
+
+    /begin AXIS_PTS AXIS_PTS.PRESSURE_RESCALE
+      "Rescale axis: 3 (position, value) pairs"
+      0x800
+      M.PRESSURE
+      RL.AXIS_PTS.RESCALE
+      0
+      CM.IDENTICAL
+      3
+      0 255
+    /end AXIS_PTS
+
+    /begin CHARACTERISTIC IdleTarget
+      "Idle speed target"
+      VALUE
+      0x100
+      RL.UBYTE
+      0
+      CM.IDENTICAL
+      0 255
+      DISPLAY_IDENTIFIER DI.IdleTarget
+    /end CHARACTERISTIC
+
+    /begin CHARACTERISTIC BoostTarget
+      "Boost target pressure"
+      VALUE
+      0x101
+      RL.SBYTE
+      0
+      CM.LINEAR.BOOST
+      -128 127
+      FORMAT "%5.2"
+      EXTENDED_LIMITS -128 127
+    /end CHARACTERISTIC
+
+    /begin CHARACTERISTIC RpmTarget
+      "RPM target, little-endian via the MOD_COMMON default"
+      VALUE
+      0x102
+      RL.UWORD
+      0
+      CM.IDENTICAL
+      0 65535
+    /end CHARACTERISTIC
+
+    /begin CHARACTERISTIC PressureTarget
+      "Pressure target, big-endian via its own BYTE_ORDER override"
+      VALUE
+      0x104
+      RL.SWORD
+      0
+      CM.IDENTICAL
+      -32768 32767
+      BYTE_ORDER MSB_FIRST
+    /end CHARACTERISTIC
+
+    /begin CHARACTERISTIC ShiftDelay
+      "Shift delay curve over RPM, standard embedded axis"
+      CURVE
+      0x200
+      RL.CURVE.UBYTE
+      0
+      CM.IDENTICAL
+      0 255
+      /begin AXIS_DESCR
+        STD_AXIS
+        M.RPM
+        CM.IDENTICAL
+        3
+        0 255
+      /end AXIS_DESCR
+    /end CHARACTERISTIC
+
+    /begin CHARACTERISTIC BoostMap
+      "Boost map over RPM (x) and load (y), standard embedded axes"
+      MAP
+      0x300
+      RL.MAP.UBYTE
+      0
+      CM.IDENTICAL
+      0 255
+      /begin AXIS_DESCR
+        STD_AXIS
+        M.RPM
+        CM.IDENTICAL
+        2
+        0 255
+      /end AXIS_DESCR
+      /begin AXIS_DESCR
+        STD_AXIS
+        M.LOAD
+        CM.IDENTICAL
+        3
+        0 255
+      /end AXIS_DESCR
+    /end CHARACTERISTIC
+
+    /begin CHARACTERISTIC ShiftDelayShared
+      "Shift delay curve sharing AXIS_PTS.RPM_SHARED with other curves"
+      CURVE
+      0x500
+      RL.CURVE.COM_AXIS.UBYTE
+      0
+      CM.IDENTICAL
+      0 255
+      /begin AXIS_DESCR
+        COM_AXIS
+        M.RPM
+        CM.IDENTICAL
+        3
+        0 255
+        AXIS_PTS_REF AXIS_PTS.RPM_SHARED
+      /end AXIS_DESCR
+    /end CHARACTERISTIC
+
+    /begin CHARACTERISTIC GearShiftPoints
+      "Shift RPM points per gear, gear axis labeled via TAB_VERB"
+      CURVE
+      0x600
+      RL.CURVE.UBYTE
+      0
+      CM.IDENTICAL
+      0 255
+      /begin AXIS_DESCR
+        STD_AXIS
+        M.GEAR
+        CM.TAB_VERB.GEAR
+        4
+        0 3
+      /end AXIS_DESCR
+    /end CHARACTERISTIC
+
+    /begin CHARACTERISTIC FixAxisCurve
+      "Shift schedule over a fixed synthetic RPM axis, no on-disk axis storage"
+      CURVE
+      0x700
+      RL.CURVE.COM_AXIS.UBYTE
+      0
+      CM.IDENTICAL
+      0 255
+      /begin AXIS_DESCR
+        FIX_AXIS
+        M.RPM
+        CM.IDENTICAL
+        3
+        10 20
+        FIX_AXIS_PAR_DIST 10 5 3
+      /end AXIS_DESCR
+    /end CHARACTERISTIC
+
+    /begin CHARACTERISTIC RescaleAxisCurve
+      "Pressure curve over a rescale axis"
+      CURVE
+      0x710
+      RL.CURVE.COM_AXIS.UBYTE
+      0
+      CM.IDENTICAL
+      0 255
+      /begin AXIS_DESCR
+        RES_AXIS
+        M.PRESSURE
+        CM.IDENTICAL
+        3
+        0 255
+        AXIS_PTS_REF AXIS_PTS.PRESSURE_RESCALE
+      /end AXIS_DESCR
+    /end CHARACTERISTIC
+
+    /begin CHARACTERISTIC SharedCurveAxisCurve
+      "Curve borrowing ShiftDelay's own embedded X axis"
+      CURVE
+      0x720
+      RL.CURVE.COM_AXIS.UBYTE
+      0
+      CM.IDENTICAL
+      0 255
+      /begin AXIS_DESCR
+        CURVE_AXIS
+        M.RPM
+        NO_COMPU_METHOD
+        8
+        0 255
+        CURVE_AXIS_REF ShiftDelay
+      /end AXIS_DESCR
+    /end CHARACTERISTIC
+
+    /begin CHARACTERISTIC ValBlock
+      "3x2 block of values, no axes at all"
+      VAL_BLK
+      0x730
+      RL.CURVE.COM_AXIS.UBYTE
+      0
+      CM.IDENTICAL
+      0 255
+      MATRIX_DIM 3 2 1
+    /end CHARACTERISTIC
+
+    /begin CHARACTERISTIC RatFuncTarget
+      "RAT_FUNC scalar, phys = int * 5"
+      VALUE
+      0x740
+      RL.SBYTE
+      0
+      CM.RAT_FUNC.SCALE
+      -128 127
+    /end CHARACTERISTIC
+
+    /begin CHARACTERISTIC FormTarget
+      "FORM scalar, phys = int + 4"
+      VALUE
+      0x741
+      RL.SBYTE
+      0
+      CM.FORM.PLUS4
+      -128 127
+    /end CHARACTERISTIC
+
+    /begin CHARACTERISTIC TabIntpTarget
+      "TAB_INTP scalar, interpolated numeric lookup"
+      VALUE
+      0x742
+      RL.UBYTE
+      0
+      CM.TAB_INTP.RPM
+      0 255
+    /end CHARACTERISTIC
+
+    /begin CHARACTERISTIC TabNointpTarget
+      "TAB_NOINTP scalar, exact numeric lookup"
+      VALUE
+      0x743
+      RL.UBYTE
+      0
+      CM.TAB_NOINTP.GEAR
+      0 255
+    /end CHARACTERISTIC
+
+    /begin GROUP Group_All "contains every sub-group"
+      ROOT
+      /begin SUB_GROUP
+        Group_Scalars
+      /end SUB_GROUP
+    /end GROUP
+
+    /begin GROUP Group_Scalars "Contains the scalar characteristics"
+      /begin REF_CHARACTERISTIC
+        IdleTarget
+        BoostTarget
+      /end REF_CHARACTERISTIC
+      /begin REF_MEASUREMENT
+        M.SOME.MEASUREMENT
+      /end REF_MEASUREMENT
+      /begin FUNCTION_LIST
+        SomeFunction
+      /end FUNCTION_LIST
+    /end GROUP
+  /end MODULE
+/end PROJECT

@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="520" viewBox="0 0 1200 520" role="img" aria-labelledby="title desc">
+  <title id="title">FreeBeamer architecture</title><desc id="desc">Desktop, CLI, and planned API adapters share a tested Go calibration engine.</desc>
+  <defs><marker id="arrow" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0 0L8 4L0 8z" fill="#68a9ec"/></marker></defs>
+  <rect width="1200" height="520" rx="12" fill="#10151a"/>
+  <text x="600" y="48" fill="#e7edf3" text-anchor="middle" font-family="Arial,sans-serif" font-size="24" font-weight="700">One engine, multiple interfaces</text>
+  <g font-family="Arial,sans-serif" text-anchor="middle">
+    <g><rect x="70" y="88" width="280" height="92" rx="6" fill="#1e242b" stroke="#343e49"/><text x="210" y="124" fill="#e7edf3" font-size="18" font-weight="700">Desktop</text><text x="210" y="151" fill="#aeb8c3" font-size="13">Wails + Angular + Plotly</text></g>
+    <g><rect x="460" y="88" width="280" height="92" rx="6" fill="#1e242b" stroke="#343e49"/><text x="600" y="124" fill="#e7edf3" font-size="18" font-weight="700">CLI</text><text x="600" y="151" fill="#aeb8c3" font-size="13">Inspection and automation</text></g>
+    <g><rect x="850" y="88" width="280" height="92" rx="6" fill="#172536" stroke="#2869ad" stroke-dasharray="7 5"/><text x="990" y="124" fill="#68a9ec" font-size="18" font-weight="700">Public API</text><text x="990" y="151" fill="#aeb8c3" font-size="13">Planned • versioned DTOs</text></g>
+    <path d="M210 180V228H600" fill="none" stroke="#68a9ec" stroke-width="2" marker-end="url(#arrow)"/><path d="M600 180V228" fill="none" stroke="#68a9ec" stroke-width="2" marker-end="url(#arrow)"/><path d="M990 180V228H600" fill="none" stroke="#68a9ec" stroke-width="2" marker-end="url(#arrow)"/>
+    <rect x="340" y="230" width="520" height="94" rx="6" fill="#18304a" stroke="#2869ad"/><text x="600" y="267" fill="#e7edf3" font-size="19" font-weight="700">Go service boundary</text><text x="600" y="295" fill="#aeb8c3" font-size="13">Workspace • DTOs • edit history • transactional Save As</text>
+    <path d="M600 324V365" stroke="#68a9ec" stroke-width="2" marker-end="url(#arrow)"/>
+    <rect x="70" y="368" width="1060" height="100" rx="6" fill="#171d23" stroke="#343e49"/>
+    <text x="600" y="400" fill="#e7edf3" font-size="18" font-weight="700">Transport-independent Go packages</text>
+    <g font-family="monospace" font-size="14" fill="#aeb8c3"><text x="190" y="440">pkg/xdf</text><text x="360" y="440">pkg/binfile</text><text x="550" y="440">pkg/calibration</text><text x="750" y="440">pkg/identify</text><text x="940" y="440">pkg/checksum</text></g>
+  </g>
+  <text x="600" y="498" fill="#77828e" text-anchor="middle" font-family="Arial,sans-serif" font-size="12">Immutable original • explicit support boundaries • reviewable byte changes</text>
+</svg>
