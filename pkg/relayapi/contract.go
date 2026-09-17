@@ -48,15 +48,23 @@ type ErrorResponse struct {
 
 // PairingLinkRequest is POST /v1/pairing-links's request body
 // (admin-only): the tuner names the session before generating a
-// disposable link for a device to consume.
+// disposable link for a device to consume. PublicURL is optional —
+// the relay doesn't know its own public hostname on its own (the CLI
+// takes the same parameter for the same reason); when the caller
+// already knows it (as the desktop app does, since it's the URL it
+// just called), passing it here gets a ready-to-share DeepLink back
+// instead of having to build one client-side.
 type PairingLinkRequest struct {
 	DisplayName string `json:"display_name"`
+	PublicURL   string `json:"public_url,omitempty"`
 }
 
 // PairingLinkResponse is POST /v1/pairing-links's response: PairingToken
 // is shown/encoded once and never retrievable again — the relay only
 // ever stores its hash. DeepLink is the ready-to-encode
-// freebeamer://connect URI carrying it.
+// freebeamer://connect URI carrying it, populated only when the
+// request included PublicURL — otherwise the caller builds its own
+// from PairingToken.
 type PairingLinkResponse struct {
 	PairingToken string    `json:"pairing_token"`
 	DeepLink     string    `json:"deep_link"`
