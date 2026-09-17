@@ -45,3 +45,70 @@ type ClientSummary struct {
 type ErrorResponse struct {
 	Error string `json:"error"`
 }
+
+// PairingLinkRequest is POST /v1/pairing-links's request body
+// (admin-only): the tuner names the session before generating a
+// disposable link for a device to consume.
+type PairingLinkRequest struct {
+	DisplayName string `json:"display_name"`
+}
+
+// PairingLinkResponse is POST /v1/pairing-links's response: PairingToken
+// is shown/encoded once and never retrievable again — the relay only
+// ever stores its hash. DeepLink is the ready-to-encode
+// freebeamer://connect URI carrying it.
+type PairingLinkResponse struct {
+	PairingToken string    `json:"pairing_token"`
+	DeepLink     string    `json:"deep_link"`
+	DisplayName  string    `json:"display_name"`
+	ExpiresAt    time.Time `json:"expires_at"`
+}
+
+// PairRequest is POST /v1/pair's request body: a device redeeming a
+// pairing link with the Ed25519 public key half of a keypair it
+// generated locally and will hold onto as its durable identity.
+type PairRequest struct {
+	PairingToken string `json:"pairing_token"`
+	// PublicKey is the raw 32-byte Ed25519 public key, base64-encoded.
+	PublicKey string `json:"public_key"`
+}
+
+// PairResponse is POST /v1/pair's response: the client identity the
+// relay created for this device. The pairing link that produced it is
+// consumed and cannot be redeemed again.
+type PairResponse struct {
+	ClientID    string `json:"client_id"`
+	DisplayName string `json:"display_name"`
+}
+
+// ChallengeRequest is POST /v1/auth/challenge's request body.
+type ChallengeRequest struct {
+	ClientID string `json:"client_id"`
+}
+
+// ChallengeResponse is POST /v1/auth/challenge's response: a nonce the
+// device must sign with its private key to prove possession of it.
+type ChallengeResponse struct {
+	// Nonce is 32 random bytes, base64-encoded.
+	Nonce     string    `json:"nonce"`
+	ExpiresAt time.Time `json:"expires_at"`
+}
+
+// SessionRequest is POST /v1/auth/session's request body: the
+// signature over the most recently issued challenge nonce for
+// ClientID, proving possession of the paired private key.
+type SessionRequest struct {
+	ClientID string `json:"client_id"`
+	// Signature is the raw 64-byte Ed25519 signature, base64-encoded.
+	Signature string `json:"signature"`
+}
+
+// SessionResponse is POST /v1/auth/session's response: a short-lived
+// bearer token scoped to device-facing endpoints only (POST
+// /v1/telemetry, GET /v1/capabilities) — never valid on admin routes
+// (/v1/live, /v1/clients, /v1/catalog, /v1/pairing-links), which stay
+// gated by the separate, longer-lived admin token.
+type SessionResponse struct {
+	SessionToken string    `json:"session_token"`
+	ExpiresAt    time.Time `json:"expires_at"`
+}
