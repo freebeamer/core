@@ -92,16 +92,47 @@ parameter.
 
 ### Auth
 
-- **Client API keys**: `freebeamer-relay client add --name "<client>"`
-  generates an opaque `fh_live_<random>` token, prints it once, and stores
-  only its SHA-256 hash. `client list` / `client revoke <id>` round this
-  out. `pkg/telemetry.Uploader` gained an `APIKey` field this session
-  specifically to carry this (its wire contract predates the relay's auth
-  model — see "A real gap this caught" below); `freebeamer mhd monitor`
-  exposes it as `--api-key` (or `$FREEBEAMER_RELAY_API_KEY`).
-- **Admin token**: one static token from `$FREEBEAMER_RELAY_ADMIN_TOKEN`;
-  `freebeamer-relay serve` refuses to start without one (fails closed rather
-  than silently booting admin endpoints open).
+The original v0 model was a single static, permanent API key per client,
+minted by an admin and baked straight into the device's provisioning
+link — simple, but a leaked link was a leaked permanent credential, and
+there was no way for a device to prove *itself* rather than just
+something it had been handed. Superseded by device pairing +
+challenge/session auth:
+
+- **Pairing links**: `POST /v1/pairing-links` (admin token; also
+  `freebeamer-relay client pairing-link create --name "<name>"` on the
+  CLI) mints a short-lived (15 min default), single-use token. It carries
+  no long-lived secret — it only bootstraps trust.
+- **Pairing**: the device generates its own Ed25519 keypair locally (the
+  private key never leaves it) and redeems the link with `POST /v1/pair
+  {pairing_token, public_key}`. The relay creates a `Client` row holding
+  the public key and immediately disposes of the pairing link — a second
+  redemption of the same token, whether a retry or a different device
+  that saw the same link, always gets `410 Gone`.
+- **Challenge/session ("second factor")**: `POST /v1/auth/challenge
+  {client_id}` returns a random nonce (2 min TTL); the device signs it
+  with its private key and calls `POST /v1/auth/session {client_id,
+  signature}`, which verifies the signature against the stored public key
+  and issues a short-lived (24h default) opaque session token, stored
+  server-side by hash so it can be revoked instantly. `POST
+  /v1/auth/logout` does exactly that, immediately, without unpairing the
+  device — it can request a new session the same way next time.
+- **Scope, strictly**: the session token authorizes device-facing routes
+  only (`POST /v1/telemetry`, `GET /v1/capabilities`) — it is never valid
+  on the admin surface (`/v1/live`, `/v1/clients`, `/v1/catalog`,
+  `/v1/pairing-links`), and the admin token is never valid on the device
+  routes. Each tier is checked with its own middleware
+  (`requireDeviceSession` vs. `requireAdminAuth` in `relay/auth.go`) so
+  neither can be satisfied by the other's credential by accident.
+- **Admin token**: unchanged — one static token from
+  `$FREEBEAMER_RELAY_ADMIN_TOKEN`; `freebeamer-relay serve` refuses to
+  start without one (fails closed rather than silently booting admin
+  endpoints open).
+
+Revoking a client (`freebeamer-relay client revoke <id>`) now also
+revokes every device session it currently holds, so kicking a device (a
+lost phone, a shop ending a session) takes effect immediately rather than
+only blocking its next re-authentication.
 
 **A real gap this caught**: the first end-to-end smoke test (see below)
 came back reporting every sample as `buffered`, not `live`, even with the
