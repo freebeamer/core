@@ -88,3 +88,16 @@ type LiveCatalog struct {
 	Provenance string        `json:"provenance"`
 	Channels   []LiveChannel `json:"channels"`
 }
+
+// LivePairingLink is a freshly minted, single-use device pairing link —
+// the camelCase presentation form of pkg/relayapi.PairingLinkResponse.
+// Unlike LiveConnectionStatus, this DOES carry a credential
+// (PairingToken) deliberately: it's meant to be shown to the operator
+// once, to hand to a device, and discarded — never persisted or logged
+// by the desktop app.
+type LivePairingLink struct {
+	PairingToken string    `json:"pairingToken"`
+	DeepLink     string    `json:"deepLink"`
+	DisplayName  string    `json:"displayName"`
+	ExpiresAt    time.Time `json:"expiresAt"`
+}
