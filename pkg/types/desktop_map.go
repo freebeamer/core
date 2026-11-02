@@ -36,7 +36,10 @@ type AxisDetail struct {
 }
 
 type MapDetail struct {
-	ID          int        `json:"id"`
+	ID int `json:"id"`
+	// ParameterID is the definition's stable parameter ID that profile
+	// bindings refer to; it is empty when the definition provides none.
+	ParameterID string     `json:"parameterId,omitempty"`
 	Title       string     `json:"title"`
 	Description string     `json:"description"`
 	Categories  []string   `json:"categories"`

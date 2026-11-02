@@ -204,8 +204,15 @@ includes devices across all clients registered on its relay, and automatically
 follows the selected device into a new session. It shows channel units, sample
 age, gaps, backfill/reconnect status, and up to four time-series plots. History
 is capped at 2,000 samples and resets when the device or session changes.
-Monitoring continues across application views. Operating-point overlays are
-not implemented yet.
+Monitoring continues across application views.
+
+With a profile associated in **Vehicle profiles**, a map whose axes are bound
+offers an opt-in **Show operating point** toggle. It outlines the bracketing
+cells in the grid and draws a cursor on line and heatmap charts, from the
+latest single sample's measured axis values. It is not the ECU's own cell
+selection or interpolation. Out-of-range readings are stated, not clamped, and
+the cursor clears for stale, missing or other-session readings. Manual
+associations are labelled unverified.
 
 Garage-wide monitoring requires the updated relay: authenticated `GET /v1/live`
 without `client_id` streams all clients; providing `client_id` retains the

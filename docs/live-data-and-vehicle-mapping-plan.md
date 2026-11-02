@@ -1,7 +1,7 @@
 # Live data and vehicle mapping implementation plan
 
 Date: 2026-09-16
-Status: Phase 1 preparation implemented; physical validation pending. Phase 2 software implementation and mock tests complete; remote deployment pending. Phase 3 (Go CLI and Flutter mobile, increments 3a/3b) software implementation and mock tests complete. Phase 4 increments 4a (Go/Wails backend) and 4b (Angular UI) implemented; software validation is recorded below. Phase 5 (vehicle profiles and map bindings) software implementation and mock tests are complete; there is no reviewed real-vehicle evidence registry yet, so "validated" status and Phase 6's operating-point overlays remain pending. Physical vehicle validation remains pending throughout.
+Status: Phase 1 preparation implemented; physical validation pending. Phase 2 software implementation and mock tests complete; remote deployment pending. Phase 3 (Go CLI and Flutter mobile, increments 3a/3b) software implementation and mock tests complete. Phase 4 increments 4a (Go/Wails backend) and 4b (Angular UI) implemented; software validation is recorded below. Phase 5 (vehicle profiles and map bindings) software implementation and mock tests are complete; there is no reviewed real-vehicle evidence registry yet, so "validated" status remains pending. Phase 6's operating-point overlay software and deterministic replay tests are complete; its physical vehicle trial is pending. Physical vehicle validation remains pending throughout.
 
 Phase 1 artifacts: [support matrix](vehicle-support-matrix.md),
 [hardware procedure and trial record](vehicle-hardware-validation.md), and CLI
@@ -398,6 +398,35 @@ vehicle → mobile → relay → desktop trial with a matched definition, record
 sample rate and latency distributions, and test temporary loss and recovery of
 both adapter and internet connections. Preserve redacted evidence and unresolved
 limitations. Declare support only for the tested combination.
+
+### Phase 6 software status (2026-10-13)
+
+Implemented: `frontend/src/app/operating-point/` holds a pure locator
+(`locateOnAxis`, `operatingPoint`) and `OperatingPointStore`, which tracks the
+backend's active association. `MapDetail` now carries the stable `parameterId`
+that bindings reference. In the map editor the overlay is opt-in per map. It
+outlines bracketing grid cells, draws a dashed cursor on line charts and an
+X marker on heatmaps, and states each reading as text. 3D surfaces get text
+only.
+
+- Every axis reading comes from the same (latest) sample. A missing bound
+  channel hides the cursor rather than mixing in an older value.
+- Ascending and descending axes and exact breakpoints are supported. Repeated or
+  non-monotonic axes are refused. Out-of-range values are stated ("not
+  clamped") and get no cell or chart marker.
+- The cursor clears when readings are not `Fresh` (stale, offline, device clock
+  ahead), when the latest sample belongs to another device/session, or when the
+  workspace generation, live scope or session no longer matches the fetched
+  association.
+- The overlay never reads or writes edit selection, undo history or BIN bytes.
+
+Tests: `operating-point.spec.ts` (deterministic replay onto expected cells,
+edges, conversion, stale/session/missing cases, chart coordinates),
+`operating-point-store.spec.ts` (association gating, workspace and session
+switches) and overlay cases in `map-editor.spec.ts`. The overlay has not yet
+been exercised against a real workspace with a live association in the desktop
+app. The physical vehicle → Android → relay → desktop trial below remains
+outstanding.
 
 ## Documentation and completion
 

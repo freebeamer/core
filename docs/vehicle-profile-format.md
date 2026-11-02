@@ -53,5 +53,7 @@ Activation is in memory and tied to workspace generation, live display scope and
 session fingerprint. Reopening/switching a workspace, reconnecting/selecting a
 source, or changing session/catalog metadata requires explicit reassociation.
 Editing working values or Save As does not change the original workspace identity.
-Phase 6 must query compatibility again before drawing verified overlays; no
-operating-point overlays are implemented here.
+Phase 6's overlay refetches compatibility whenever workspace, live scope or
+session metadata changes and after each associate/clear, and draws only for a
+`manual` or `validated` association that still matches the current workspace
+generation, live scope and selected session.
