@@ -8,6 +8,11 @@ substitutes for the other; see
 [live data and vehicle mapping plan](live-data-and-vehicle-mapping-plan.md)'s
 Phase 4 section for why both are required.
 
+The UI harness now saves garage settings. Start its Wails development server
+with a temporary `XDG_CONFIG_HOME` to keep test credentials separate from your
+normal garage connection. The 2026-09-16 UI run below predates the garage setup
+flow; the 2026-10-13 garage run records the current flow.
+
 ## Procedure
 
 ```sh
@@ -103,7 +108,15 @@ server does not reload its state. The harness accepts `--desktop-url`,
 failed assertions or timeout and prints resource snapshots (RSS in KiB and
 cumulative CPU time from `ps`) for its CLI, relay, and WebKit subprocesses.
 
-Recorded run: 2,285 adapter replies in 46.35 seconds including startup and
+Garage run (2026-10-13): with an empty temporary `XDG_CONFIG_HOME`, the
+harness opened **Garage settings**, saved and connected to the whole garage
+without a client selection, and reached `connected` with 2,500 rpm plotted.
+2,335 adapter replies in 48.38 seconds; 2,000 of 2,000 samples retained,
+0 missing. `freebeamer/garage.json` was created with mode `0600`. Restoring on
+the next launch is covered by `internal/desktop/garage_test.go`, not by this
+UI run.
+
+Recorded run (2026-09-16): 2,285 adapter replies in 46.35 seconds including startup and
 cleanup. At 40 seconds the adapter had served 1,973 replies (~49.3 replies/s,
 against a configured 20 ms interval). The script checked 2,500 rpm and -5% load
 from explicit little-endian raw mock values; cleared the credential field;

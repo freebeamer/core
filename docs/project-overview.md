@@ -193,14 +193,23 @@ freebeamer checksum fix modified.bin --output modified-fixed.bin
 
 ## Development status
 
-The desktop **Live data** view connects to a relay without opening an XDF/BIN
-workspace. Enter the relay URL and admin token, load and select a client, then
-connect. It shows device/session readings, channel units, sample age, gaps,
-backfill/reconnect status, and up to four time-series plots. History is capped at
-2,000 samples for the selected source; changing source clears that history.
-Credentials are not saved, and the token field is cleared on Connect. Monitoring
-continues when switching back to the calibration editor. Operating-point
-overlays are not implemented yet.
+The desktop connects to your garage when the app starts, without opening an
+XDF/BIN workspace. On first launch, enter the garage API URL and admin token in
+**Garage settings**. The connection settings are saved in the OS user-config
+folder at `freebeamer/garage.json` (owner-only permissions); the token stays out
+of browser storage and is cleared from the form after submission.
+
+The **Live data** view only requires selecting a device. The garage connection
+includes devices across all clients registered on its relay, and automatically
+follows the selected device into a new session. It shows channel units, sample
+age, gaps, backfill/reconnect status, and up to four time-series plots. History
+is capped at 2,000 samples and resets when the device or session changes.
+Monitoring continues across application views. Operating-point overlays are
+not implemented yet.
+
+Garage-wide monitoring requires the updated relay: authenticated `GET /v1/live`
+without `client_id` streams all clients; providing `client_id` retains the
+existing scoped behavior. Devices appear when telemetry is received or replayed.
 
 The desktop **Vehicle profiles** view lets an operator bind a workspace's
 explicit numeric map axes to a connected source's telemetry channels. A
