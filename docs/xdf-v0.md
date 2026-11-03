@@ -10,7 +10,7 @@ The named `mmedtypeflags` bits are:
 | `0x01` | signed | Interpret the integer using two's complement. |
 | `0x02` | LSB first | Store the least-significant byte first. |
 | `0x04` | column major | Populate table cells down columns before advancing columns. |
-| `0x10000` | floating point | Recognized but rejected in V0. |
+| `0x10000` | floating point | IEEE-754. Supported for 32-bit cells since mapdef 1.4; see [xdf-compatibility.md](xdf-compatibility.md#ieee-754-evidence). |
 
 Evidence:
 
@@ -34,7 +34,8 @@ major strides occur on virtual, unaddressed axes; these are safely skipped.
 Any addressed axis using a non-zero stride produces an explicit error until its
 layout is independently validated.
 
-IEEE-754 data remains outside V0 as required by the implementation plan.
+IEEE-754 data was outside V0. It is now supported for 32-bit cells; see the
+IEEE-754 evidence section in [xdf-compatibility.md](xdf-compatibility.md#ieee-754-evidence).
 
 ## XDFFLAG bit/mask semantics
 

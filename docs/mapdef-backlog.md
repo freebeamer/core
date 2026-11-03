@@ -59,6 +59,15 @@ this repository has no configured issue tracker automation.
      [xdf-compatibility.md](xdf-compatibility.md#bounds-evidence) (final
      paragraph).
 
+   - **Done (2026-11-03)** — IEEE-754 cells (`mmedtypeflags` `0x10000`):
+     32-bit cells convert to `layout.dataType: "float32"` (mapdef 1.4+) on
+     tables, axes and constants. 8/16/64-bit float cells and float-backed
+     flags stay diagnosed. See
+     [xdf-compatibility.md](xdf-compatibility.md#ieee-754-evidence). Open
+     follow-on from that pass: a2l2xdf-generated XDFs set
+     `mmedmajorstridebits` to the element width for contiguous data, which is
+     still rejected as a non-zero stride.
+
    Item 3 is now fully addressed to the extent current evidence supports.
 4. **In progress — V0 slice done.** The official ASAM MCD-2 MC (A2L)
    specification is not freely available (membership/purchase gated, no
@@ -200,8 +209,7 @@ this repository has no configured issue tracker automation.
    (`types.RawTable`, edit results, desktop DTOs) instead of `int64`. Edits
    store the nearest representable value, and a stored NaN/infinity fails
    decoding. `FLOAT16_IEEE`, `A_UINT64`/`A_INT64` and float counts stay
-   rejected, and XDF's float flag still needs its own evidence pass. See
-   a2l-v0-plan.md's FLOAT32_IEEE / FLOAT64_IEEE evidence section.
+   rejected. See a2l-v0-plan.md's FLOAT32_IEEE / FLOAT64_IEEE evidence section.
    Still explicitly out of scope: `FLOAT16_IEEE` and `A_UINT64`/`A_INT64`
    (see above), `ASCII`/`CUBOID`/`CUBE_4`/
    `CUBE_5` characteristics (string/3-5 dimensional, see above),

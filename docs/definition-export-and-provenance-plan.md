@@ -55,7 +55,8 @@ refuse or report a loss under I5.
 | mapdef feature | XDF | A2L |
 | --- | --- | --- |
 | Integer `uint8`–`int32`, big/little endian, row/column major | Yes | Yes |
-| `float32` / `float64` (1.4) | Unconfirmed. XDF's float flag is not yet evidenced (see [a2l-v0-plan.md](a2l-v0-plan.md#float32_ieee--float64_ieee-evidence)) | Yes |
+| `float32` (1.4) | Yes (`0x10000`, 32-bit cells; see [xdf-compatibility.md](xdf-compatibility.md#ieee-754-evidence)) | Yes |
+| `float64` (1.4) | No (no evidenced 64-bit XDF cell) | Yes |
 | `bitPosition` flags | Yes (`<mask>`) | No evidenced mapping (A2L `BIT_MASK` not researched) |
 | `freehorse-expression-v1` affine conversions | Yes (`MATH`) | Yes (`LINEAR`/`RAT_FUNC`) |
 | Non-affine expressions | Yes (`MATH`) | Partly (`FORM`, grammar subset) |

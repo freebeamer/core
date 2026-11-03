@@ -907,9 +907,9 @@ Still rejected:
 - `bitPosition` on a float layout (`calibration.ErrFloatBitPosition`).
 - `A_UINT64`/`A_INT64`. Values above 2^53 cannot cross the desktop's JSON
   boundary exactly, so they need a representation decision of their own.
-- XDF's float type flag (`mmedtypeflags` `0x10000`) is still diagnosed as
-  unsupported. The engine can now decode floats, but this slice gathered
-  A2L evidence only. TunerPro's float convention gets its own evidence pass.
+- XDF's float type flag (`mmedtypeflags` `0x10000`) was left out of this
+  slice. It now has its own evidence pass and is supported for 32-bit cells;
+  see xdf-compatibility.md's IEEE-754 evidence section.
 
 ## Grammar subset for this slice
 

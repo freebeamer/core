@@ -15,7 +15,7 @@ is supported for decoding or editing.
 | `XDFFORMAT version` | Yes | Provenance | N/A | Preserved |
 | Header title/description/author | Yes | Identity/provenance | N/A | Preserved |
 | `BASEOFFSET` offset/subtract | Yes | Effective signed base offset | Yes | Preserved semantically; raw XML retained |
-| `DEFAULTS` size, signed, endian, float | Yes | Applied when axis fields omit flags/size | Integer subset | Float is diagnosed unsupported |
+| `DEFAULTS` size, signed, endian, float | Yes | Applied when axis fields omit flags/size | Yes | `float="1"` sets the IEEE-754 flag when `mmedtypeflags` is absent; same width rules as below |
 | `REGION` | Yes | Memory segment and candidate image size | Compatibility check | Attributes retained in source XML |
 | `CATEGORY` / `CATEGORYMEM` | Yes | Stable category references | Display/filter | Missing category declarations get deterministic IDs |
 | `XDFTABLE` identity/text | Yes | Parameter | Yes | Duplicate IDs receive deterministic suffixes |
@@ -25,7 +25,8 @@ is supported for decoding or editing.
 | MSB/LSB-first | Yes | Explicit byte order | Yes | Supported |
 | Row/column-major Z layout | Yes | Explicit order | Yes | Supported |
 | Non-zero major/minor strides | Yes | Preserved and warned | No | Explicit `xdf.unsupported-stride` diagnostic |
-| IEEE-754 storage | Recognized | Marked `unknown` and warned | No | Explicit diagnostic |
+| IEEE-754 storage (`0x10000`), 32-bit cells | Yes | `layout.dataType: "float32"` (mapdef 1.4+); `0x02`/`0x04` keep their meaning | Yes | On tables, axes and constants. A set signed bit is ignored with an `xdf.float-signed-ignored` info diagnostic. See IEEE-754 evidence below |
+| IEEE-754 storage with 8/16/64-bit cells, or on an `XDFFLAG` | Recognized | Marked `unknown` and warned | No | TunerPro documents only 8/16/32-bit cells; no real XDF with a 64-bit float or a float-backed flag was found |
 | Unknown `mmedtypeflags` bits | Preserved | Marked `unknown` and warned | No | Explicit diagnostic |
 | Units, decimal places, output type | Yes | Unit/display metadata | Yes, where applicable | Preserved |
 | `MATH equation` | Yes | `freehorse-expression-v1` | `+ - * /`, unary signs, parentheses, numeric literals, `X` | Other XDF expressions prevent semantic validation; source remains available |
@@ -126,6 +127,67 @@ FreeBeamer converts `XDFCONSTANT` the same way it converts a scalar
 `XDFTABLE` (a 1x1 table with no axes): one `scalar`-kind mapdef parameter
 using the same `convertLayout` path, so it inherits the same data-type,
 byte-order, and stride support and limits.
+
+### IEEE-754 evidence
+
+TunerPro's help pages document 8/16/32-bit cells, signed values and LSB-first
+order. They never describe IEEE-754 storage; "floating point" there is only
+an output type. The sources below were read on 2026-11-03 and not copied.
+
+Producers that write `0x10000` for IEEE-754 cells:
+
+- bri3d's a2l2xdf: `FLOAT32_IEEE` → `0x10000`, 32-bit cells, combined with
+  `0x02`/`0x04`: <https://github.com/bri3d/a2l2xdf/blob/master/a2l2xdf.py>
+- ScoobyRom's XDF writer (`LibScoobyRom/Tables/Table.cs`): float tables →
+  `0x10000`, 32-bit cells: <https://github.com/aalesv/ScoobyRom>
+- jtownson's xdfbinext (`A2L2XDF.scala`): its floating-point flag is written
+  as `0x10000`: <https://github.com/jtownson/xdfbinext>
+
+Readers that decode it:
+
+- `TunerPro-XDF-BIN-Universal-Exporter` (commit `b098ac5`,
+  `tunerpro_xdf/xdf_values.py`): `0x10000` is IEEE-754, 32 bits read as
+  binary32 and 64 bits as binary64, `0x02` selects byte order, and the signed
+  bit is "moot". Other widths are refused. It cites a TunerPro-authored XDF
+  with `0x10000` on 32-bit cells.
+- TuneItVerse (`src-tauri/src/xdf.rs`, MIT): 4-byte IEEE cells with the usual
+  byte order: <https://github.com/jackosler12-spec/TuneItVerse>
+
+Real definitions (public third-party files, inspected and never committed):
+
+- A GM E78 definition (XDF 1.70): `0x10000` and `0x10001` on 32-bit X axes,
+  Z data and `XDFCONSTANT`s, all with zero strides.
+- A VW Simos18 definition (XDF 1.60): `0x10002` and `0x10006` on 32-bit Z
+  data.
+
+FreeBeamer converts all 10 float cells in those two files to `float32`.
+
+Counter-evidence: MxT (commit `bae7da1`) reads and writes `0x08` as its float
+bit. No public XDF using `0x08` was found in a GitHub code search, and MxT's
+own example XDF contains no floats. FreeBeamer follows the `0x10000` reading,
+and an unknown `0x08` bit stays rejected. TuneItVerse attributes its mapping
+to RomRaider's `XDFConversionLayer.java`, but that file reads only
+`0x01`/`0x02`/`0x04` and stubs out `DEFAULTS float`, so RomRaider is not
+cited here.
+
+What follows from this:
+
+- `0x10000` with a 32-bit cell is `float32`. Byte order and column-major
+  order use the existing bits.
+- The signed bit on a float cell (`0x10001`, seen in the E78 file) is ignored
+  and reported. Both readers above treat it as having no effect.
+- A float cell of 8, 16 or 64 bits stays unsupported. Only one reader handles
+  64 bits, TunerPro does not document it, and no real file uses it.
+- An `XDFFLAG` over float storage stays unsupported. No source shows one, and
+  a bit position has no meaning in a float.
+- `DEFAULTS float="1"` applies the flag when `mmedtypeflags` is absent, the
+  same way `signed`/`lsbfirst` defaults already work. Only MxT parses it this
+  way, and no real file with `float="1"` was found.
+
+Known follow-on: a2l2xdf writes `mmedmajorstridebits` equal to the element
+width for contiguous data. FreeBeamer still rejects any non-zero stride
+(153 diagnostics in the Simos18 file). That is a separate stride question
+and needs its own evidence.
 
 ### XDFFLAG mask evidence
 

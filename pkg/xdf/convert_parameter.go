@@ -136,6 +136,17 @@ func boundsMap(min, max *float64) map[string]interface{} {
 func convertFlag(flag types.XDFFlag, index int, defaults types.XDFDefaults, categories map[int]string) (types.MapParameter, []types.ImportDiagnostic) {
 	path := fmt.Sprintf("flags[%d]", index)
 	layout, diagnostics := convertLayout(flag.Embedded, defaults, []int{1}, path)
+	if layout.DataType == "float32" {
+		// No evidence shows an XDFFLAG over IEEE-754 storage, and a bit
+		// position has no meaning in a float, so this stays unsupported.
+		layout.DataType = "unknown"
+		diagnostics = append(diagnostics, types.ImportDiagnostic{
+			Severity: "warning",
+			Code:     "xdf.unsupported-data-type",
+			Path:     path,
+			Message:  "XDF flag over IEEE-754 float storage is preserved but unsupported.",
+		})
+	}
 	bitPosition, maskDiagnostics := flagBitPosition(flag.Mask, layout.DataType, path)
 	layout.BitPosition = bitPosition
 	diagnostics = append(diagnostics, maskDiagnostics...)
@@ -193,7 +204,7 @@ func dataTypeBits(dataType string) int {
 		return 8
 	case "uint16", "int16":
 		return 16
-	case "uint32", "int32":
+	case "uint32", "int32", "float32":
 		return 32
 	default:
 		return 0

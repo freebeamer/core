@@ -81,7 +81,8 @@ func TestResolveDataTypeDefaultsAndRejections(t *testing.T) {
 		target   error
 	}{
 		{embedded(0, 64, 0), ErrUnsupportedDataType},
-		{embedded(0, 32, testTypeFloat), ErrUnsupportedDataType},
+		{embedded(0, 64, testTypeFloat), ErrUnsupportedDataType},
+		{embedded(0, 16, testTypeFloat), ErrUnsupportedDataType},
 		{embedded(0, 16, 0x80), ErrUnsupportedDataType},
 	} {
 		layout := parameter(types.XDFTable{Z: types.XDFAxis{Embedded: test.embedded}}).Layout

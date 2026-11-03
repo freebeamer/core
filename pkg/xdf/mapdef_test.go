@@ -95,7 +95,7 @@ func TestMapdefConversionPreservesSupportedLayouts(t *testing.T) {
 }
 
 func TestMapdefConversionDiagnosesUnsupportedLayout(t *testing.T) {
-	embedded := types.XDFEmbeddedData{ElementSizeBits: 32, TypeFlags: 0x10000, RowCount: 2, ColumnCount: 2, MajorStrideBits: 32, Raw: map[string]string{"mmedtypeflags": "explicit"}}
+	embedded := types.XDFEmbeddedData{ElementSizeBits: 64, TypeFlags: 0x10000, RowCount: 2, ColumnCount: 2, MajorStrideBits: 64, Raw: map[string]string{"mmedtypeflags": "explicit"}}
 	document, err := (xdf.Converter{}).Convert(definitionWithZ(embedded), "unsupported.xdf")
 	if err != nil {
 		t.Fatal(err)

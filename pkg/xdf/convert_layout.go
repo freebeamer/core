@@ -23,9 +23,11 @@ func convertLayout(embedded types.XDFEmbeddedData, defaults types.XDFDefaults, d
 	}
 
 	diagnostics := make([]types.ImportDiagnostic, 0)
-	dataType, supported := integerDataType(bits, flags)
+	dataType, supported := xdfDataType(bits, flags)
 	if !supported {
 		diagnostics = append(diagnostics, unsupportedDataTypeDiagnostic(path, bits, flags))
+	} else if flags&typeFloat != 0 && flags&typeSigned != 0 {
+		diagnostics = append(diagnostics, floatSignedIgnoredDiagnostic(path))
 	}
 	if embedded.MajorStrideBits != 0 || embedded.MinorStrideBits != 0 {
 		diagnostics = append(diagnostics, unsupportedStrideDiagnostic(path))
@@ -58,8 +60,22 @@ func effectiveTypeFlags(embedded types.XDFEmbeddedData, defaults types.XDFDefaul
 	return flags
 }
 
-func integerDataType(bits int, flags uint64) (string, bool) {
-	if bits != 8 && bits != 16 && bits != 32 || flags&typeFloat != 0 || flags&^knownTypeFlags != 0 {
+// xdfDataType maps an element size and mmedtypeflags to a mapdef data type.
+// The 0x10000 float flag with a 32-bit cell is IEEE-754 binary32. 64-bit and
+// narrower float cells stay unsupported: TunerPro documents only 8/16/32-bit
+// cells, and no real XDF with a 64-bit float was found. The signed bit has no
+// effect on a float. See xdf-compatibility.md's IEEE-754 evidence section.
+func xdfDataType(bits int, flags uint64) (string, bool) {
+	if flags&^knownTypeFlags != 0 {
+		return "unknown", false
+	}
+	if flags&typeFloat != 0 {
+		if bits != 32 {
+			return "unknown", false
+		}
+		return "float32", true
+	}
+	if bits != 8 && bits != 16 && bits != 32 {
 		return "unknown", false
 	}
 	prefix := "uint"
@@ -117,6 +133,15 @@ func unsupportedDataTypeDiagnostic(path string, bits int, flags uint64) types.Im
 		Code:     "xdf.unsupported-data-type",
 		Path:     path,
 		Message:  fmt.Sprintf("XDF data representation bits=%d flags=%#x is preserved but unsupported.", bits, flags),
+	}
+}
+
+func floatSignedIgnoredDiagnostic(path string) types.ImportDiagnostic {
+	return types.ImportDiagnostic{
+		Severity: "info",
+		Code:     "xdf.float-signed-ignored",
+		Path:     path,
+		Message:  "XDF signed flag is set on an IEEE-754 cell; it has no effect on a float and is ignored.",
 	}
 }
 
