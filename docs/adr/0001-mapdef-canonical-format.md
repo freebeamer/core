@@ -99,6 +99,18 @@ independent and both are reported at their boundaries.
 - The first version intentionally cannot express all A2L or XDF constructs.
   Unsupported input remains visible instead of being guessed.
 
+## Amendments
+
+2026-11-03: The guarantees above are kept as accepted. Two have since
+changed:
+
+- mapdef 1.4.0 adds `float32`/`float64` storage next to the integer types
+  ("Version 1 supports … integer storage"). See
+  [a2l-v0-plan.md](../a2l-v0-plan.md#float32_ieee--float64_ieee-evidence).
+- A2L import is implemented (`pkg/a2l`); A2L export is not. Export for both
+  formats stays disabled under the gate in
+  [definition-export-and-provenance-plan.md](../definition-export-and-provenance-plan.md).
+
 ## Legal and safety boundary
 
 The parser and adapter are independently implemented for interoperability. No

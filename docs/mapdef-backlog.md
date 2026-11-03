@@ -212,5 +212,15 @@ this repository has no configured issue tracker automation.
    incremental fidelity work in item 3.
 5. Evaluate external-format export only after import coverage and round-trip
    invariants are defined. Keep XDF and A2L export disabled until then.
+   **Invariants defined, export still disabled.**
+   [definition-export-and-provenance-plan.md](definition-export-and-provenance-plan.md)
+   names the round-trip invariants (I1–I6), lists what each target format can
+   represent, and sets the gate an exporter must pass. It recommends an I1
+   decode-equivalence harness before any exporter.
 6. Add user-facing provenance/licence review before exporting or sharing a
-   converted definition.
+   converted definition. **Design proposed** in the same plan: a shared
+   `mapdef.ReviewForSharing`, `freebeamer mapdef review`, convert-time
+   provenance flags, a user-declared `provenance.redistribution` (mapdef
+   1.5), and an explicit `strip-source`. Not implemented yet. Note that every
+   converted `.mapdef` currently embeds its full source file verbatim and
+   never records a licence.
