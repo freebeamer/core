@@ -40,7 +40,7 @@ func TestDecodeAxisWithFixedPoints(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !reflect.DeepEqual(decoded.Raw.X, []int64{-1, 4, 6}) || !reflect.DeepEqual(decoded.X, []float64{-1, 4, 6}) {
+	if !reflect.DeepEqual(decoded.Raw.X, []float64{-1, 4, 6}) || !reflect.DeepEqual(decoded.X, []float64{-1, 4, 6}) {
 		t.Fatalf("fixed axis decoded Raw.X=%v X=%v", decoded.Raw.X, decoded.X)
 	}
 	if decoded.Addresses.X != nil {
@@ -91,7 +91,7 @@ func TestDecodeAxisWithRescaleStride(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !reflect.DeepEqual(decoded.Raw.X, []int64{10, 20, 30}) {
+	if !reflect.DeepEqual(decoded.Raw.X, []float64{10, 20, 30}) {
 		t.Fatalf("rescale axis decoded Raw.X = %v, want [10 20 30]", decoded.Raw.X)
 	}
 	if !reflect.DeepEqual(decoded.Addresses.X, []uint64{1, 3, 5}) {
@@ -154,7 +154,7 @@ func TestDecodeAxisToleratesAllZeroMultiEntryStride(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !reflect.DeepEqual(decoded.Raw.X, []int64{7, 8}) {
+	if !reflect.DeepEqual(decoded.Raw.X, []float64{7, 8}) {
 		t.Fatalf("decoded Raw.X = %v, want [7 8]", decoded.Raw.X)
 	}
 }

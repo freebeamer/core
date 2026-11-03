@@ -52,12 +52,12 @@ type MapDetail struct {
 	Z           AxisDetail `json:"z"`
 
 	XValues    []float64   `json:"xValues,omitempty"`
-	XRaw       []int64     `json:"xRaw,omitempty"`
+	XRaw       []float64   `json:"xRaw,omitempty"`
 	XAddresses []string    `json:"xAddresses,omitempty"`
 	YValues    []float64   `json:"yValues,omitempty"`
-	YRaw       []int64     `json:"yRaw,omitempty"`
+	YRaw       []float64   `json:"yRaw,omitempty"`
 	YAddresses []string    `json:"yAddresses,omitempty"`
 	ZValues    [][]float64 `json:"zValues,omitempty"`
-	ZRaw       [][]int64   `json:"zRaw,omitempty"`
+	ZRaw       [][]float64 `json:"zRaw,omitempty"`
 	ZAddresses [][]string  `json:"zAddresses,omitempty"`
 }

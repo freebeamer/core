@@ -414,25 +414,25 @@ func definitionWithZ(embedded types.XDFEmbeddedData) *types.XDFDefinition {
 	return &types.XDFDefinition{Header: types.XDFHeader{Title: "Layout", Defaults: types.XDFDefaults{DataSizeBits: 8}}, Tables: []types.XDFTable{{ID: "1", Title: "Map", Z: types.XDFAxis{ID: "z", Formula: "X", Embedded: embedded}}}}
 }
 
-func decodeParameter(parameter types.MapParameter, data []byte, baseOffset int64) ([][]int64, [][]float64, error) {
+func decodeParameter(parameter types.MapParameter, data []byte, baseOffset int64) ([][]float64, [][]float64, error) {
 	rows, columns := parameter.Layout.Dimensions[0], parameter.Layout.Dimensions[1]
-	raw, physical := make([][]int64, rows), make([][]float64, rows)
+	raw, physical := make([][]float64, rows), make([][]float64, rows)
 	formula, err := expression.Parse(parameter.Conversion.Expression)
 	if err != nil {
 		return nil, nil, err
 	}
 	base := int64(*parameter.Layout.Address) + baseOffset
 	for row := 0; row < rows; row++ {
-		raw[row], physical[row] = make([]int64, columns), make([]float64, columns)
+		raw[row], physical[row] = make([]float64, columns), make([]float64, columns)
 		for column := 0; column < columns; column++ {
 			index := row*columns + column
 			if parameter.Layout.Order == "column-major" {
 				index = column*rows + row
 			}
 			offset := int(base) + index*2
-			value := int64(binary.LittleEndian.Uint16(data[offset:]))
+			value := float64(binary.LittleEndian.Uint16(data[offset:]))
 			raw[row][column] = value
-			physical[row][column], err = formula.Eval(float64(value))
+			physical[row][column], err = formula.Eval(value)
 			if err != nil {
 				return nil, nil, err
 			}

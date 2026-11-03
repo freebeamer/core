@@ -25,6 +25,10 @@ func resolveDataType(layout types.DataLayout) (resolvedDataType, error) {
 		result.bits = 32
 	case "int32":
 		result.bits, result.signed = 32, true
+	case "float32":
+		result.bits, result.signed, result.float = 32, true, true
+	case "float64":
+		result.bits, result.signed, result.float = 64, true, true
 	default:
 		return resolvedDataType{}, fmt.Errorf("%w: %q", ErrUnsupportedDataType, layout.DataType)
 	}
@@ -70,7 +74,7 @@ func (d *Decoder) DecodeParameter(parameter types.MapParameter) (*types.DecodedT
 	if err != nil {
 		return nil, definitionError(parameter, "z", err)
 	}
-	result.Raw.Z = make([][]int64, rows)
+	result.Raw.Z = make([][]float64, rows)
 	result.Z = make([][]float64, rows)
 	result.Addresses.Z = make([][]uint64, rows)
 
@@ -91,7 +95,7 @@ func (d *Decoder) DecodeParameter(parameter types.MapParameter) (*types.DecodedT
 	}
 
 	for row := 0; row < rows; row++ {
-		result.Raw.Z[row] = make([]int64, columns)
+		result.Raw.Z[row] = make([]float64, columns)
 		result.Z[row] = make([]float64, columns)
 		result.Addresses.Z[row] = make([]uint64, columns)
 		for column := 0; column < columns; column++ {
@@ -107,7 +111,7 @@ func (d *Decoder) DecodeParameter(parameter types.MapParameter) (*types.DecodedT
 			if readErr != nil {
 				return nil, definitionError(parameter, "z", readErr)
 			}
-			value, evaluationErr := conversion.Eval(float64(raw))
+			value, evaluationErr := conversion.Eval(raw)
 			if evaluationErr != nil {
 				return nil, definitionError(parameter, "z", evaluationErr)
 			}
@@ -119,7 +123,7 @@ func (d *Decoder) DecodeParameter(parameter types.MapParameter) (*types.DecodedT
 	return result, nil
 }
 
-func (d *Decoder) decodeAxis(axis types.MapAxis) ([]int64, []float64, []uint64, error) {
+func (d *Decoder) decodeAxis(axis types.MapAxis) ([]float64, []float64, []uint64, error) {
 	if axis.Layout == nil {
 		return d.decodeFixedAxis(axis)
 	}
@@ -140,7 +144,7 @@ func (d *Decoder) decodeAxis(axis types.MapAxis) ([]int64, []float64, []uint64, 
 		return nil, nil, nil, err
 	}
 
-	rawValues := make([]int64, axis.Count)
+	rawValues := make([]float64, axis.Count)
 	values := make([]float64, axis.Count)
 	addresses := make([]uint64, axis.Count)
 	for index := 0; index < axis.Count; index++ {
@@ -152,7 +156,7 @@ func (d *Decoder) decodeAxis(axis types.MapAxis) ([]int64, []float64, []uint64, 
 		if readErr != nil {
 			return nil, nil, nil, readErr
 		}
-		value, evaluationErr := conversion.Eval(float64(raw))
+		value, evaluationErr := conversion.Eval(raw)
 		if evaluationErr != nil {
 			return nil, nil, nil, evaluationErr
 		}
@@ -168,7 +172,7 @@ func (d *Decoder) decodeAxis(axis types.MapAxis) ([]int64, []float64, []uint64, 
 // precomputed ahead of time from FIX_AXIS_PAR_DIST/FIX_AXIS_PAR_LIST, so
 // this only applies the axis's own Conversion to each one — no file read,
 // no addresses.
-func (d *Decoder) decodeFixedAxis(axis types.MapAxis) ([]int64, []float64, []uint64, error) {
+func (d *Decoder) decodeFixedAxis(axis types.MapAxis) ([]float64, []float64, []uint64, error) {
 	if len(axis.FixedPoints) == 0 {
 		return nil, nil, nil, nil
 	}
@@ -176,15 +180,17 @@ func (d *Decoder) decodeFixedAxis(axis types.MapAxis) ([]int64, []float64, []uin
 	if err != nil {
 		return nil, nil, nil, err
 	}
+	rawValues := make([]float64, len(axis.FixedPoints))
 	values := make([]float64, len(axis.FixedPoints))
 	for i, raw := range axis.FixedPoints {
-		value, evalErr := conversion.Eval(float64(raw))
+		rawValues[i] = float64(raw)
+		value, evalErr := conversion.Eval(rawValues[i])
 		if evalErr != nil {
 			return nil, nil, nil, evalErr
 		}
 		values[i] = value
 	}
-	return append([]int64(nil), axis.FixedPoints...), values, nil, nil
+	return rawValues, values, nil, nil
 }
 
 // axisElementSize resolves an axis's own per-element byte size: normally
@@ -238,9 +244,30 @@ func (d *Decoder) readUnsigned(offset uint64, dataType resolvedDataType) (uint64
 			return uint64(binary.LittleEndian.Uint32(data)), nil
 		}
 		return uint64(binary.BigEndian.Uint32(data)), nil
+	case 64:
+		if dataType.endian == binfile.LittleEndian {
+			return binary.LittleEndian.Uint64(data), nil
+		}
+		return binary.BigEndian.Uint64(data), nil
 	default:
 		return 0, ErrUnsupportedDataType
 	}
+}
+
+// readFloat reads an IEEE-754 binary32/binary64 value using the same byte
+// order handling as the integer types (see docs/a2l-v0-plan.md's
+// FLOAT32_IEEE / FLOAT64_IEEE evidence). A stored NaN or infinity is
+// returned as-is; the conversion step rejects it as non-finite rather than
+// letting it reach a display or edit.
+func (d *Decoder) readFloat(offset uint64, dataType resolvedDataType) (float64, error) {
+	bits, err := d.readUnsigned(offset, dataType)
+	if err != nil {
+		return 0, err
+	}
+	if dataType.bits == 32 {
+		return float64(math.Float32frombits(uint32(bits))), nil
+	}
+	return math.Float64frombits(bits), nil
 }
 
 func (d *Decoder) readInteger(offset uint64, dataType resolvedDataType) (int64, error) {
@@ -266,10 +293,18 @@ func (d *Decoder) readInteger(offset uint64, dataType resolvedDataType) (int64, 
 // readRaw reads the calibration's raw value: the full word for an ordinary
 // parameter, or a single extracted bit (0 or 1) when bitPosition addresses
 // one bit within that word, as XDF flag/switch masks do. Sign never applies
-// to a bit read; only the underlying bit pattern matters.
-func (d *Decoder) readRaw(offset uint64, dataType resolvedDataType, bitPosition *int) (int64, error) {
+// to a bit read; only the underlying bit pattern matters. A floating-point
+// word is read as its IEEE-754 value and never has a bit position.
+func (d *Decoder) readRaw(offset uint64, dataType resolvedDataType, bitPosition *int) (float64, error) {
+	if dataType.float {
+		if bitPosition != nil {
+			return 0, ErrFloatBitPosition
+		}
+		return d.readFloat(offset, dataType)
+	}
 	if bitPosition == nil {
-		return d.readInteger(offset, dataType)
+		value, err := d.readInteger(offset, dataType)
+		return float64(value), err
 	}
 	if *bitPosition < 0 || *bitPosition >= dataType.bits {
 		return 0, fmt.Errorf("%w: bit %d in %d-bit storage", ErrInvalidBitPosition, *bitPosition, dataType.bits)
@@ -278,7 +313,7 @@ func (d *Decoder) readRaw(offset uint64, dataType resolvedDataType, bitPosition 
 	if err != nil {
 		return 0, err
 	}
-	return int64((unsigned >> uint(*bitPosition)) & 1), nil
+	return float64((unsigned >> uint(*bitPosition)) & 1), nil
 }
 
 func (d *Decoder) fileOffset(layout types.DataLayout) (uint64, error) {

@@ -26,6 +26,7 @@ var migrations = map[string]migrationStep{
 	"1.0.0": migrateV1_0_0ToV1_1_0,
 	"1.1.0": migrateV1_1_0ToV1_2_0,
 	"1.2.0": migrateV1_2_0ToV1_3_0,
+	"1.3.0": migrateV1_3_0ToV1_4_0,
 }
 
 // Migrate upgrades a copy of document to CurrentVersion, applying adjacent
@@ -125,6 +126,19 @@ func migrateV1_2_0ToV1_3_0(document *types.MapDefinition) types.ImportDiagnostic
 		Severity: "info",
 		Code:     "mapdef.migrated-1.2.0-to-1.3.0",
 		Message:  "Migrated from mapdef 1.2.0 to 1.3.0; no data changes (1.3 only adds the new freehorse-lookup-table-v1 conversion shape).",
+	}
+}
+
+// migrateV1_3_0ToV1_4_0 is a version bump only: mapdef 1.4 adds the
+// float32/float64 layout.dataType values (IEEE-754 binary32/binary64, A2L
+// FLOAT32_IEEE/FLOAT64_IEEE). A 1.3.0 document could not describe a float
+// element at all, so there is nothing to promote.
+func migrateV1_3_0ToV1_4_0(document *types.MapDefinition) types.ImportDiagnostic {
+	document.FormatVersion = "1.4.0"
+	return types.ImportDiagnostic{
+		Severity: "info",
+		Code:     "mapdef.migrated-1.3.0-to-1.4.0",
+		Message:  "Migrated from mapdef 1.3.0 to 1.4.0; no data changes (1.4 only adds the float32/float64 data types).",
 	}
 }
 

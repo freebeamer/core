@@ -100,7 +100,7 @@ func TestDecodeUnsignedBigEndian8And16(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !reflect.DeepEqual(got.Raw.Z, [][]int64{{2, 256}}) || !reflect.DeepEqual(got.Z, [][]float64{{1, 128}}) {
+	if !reflect.DeepEqual(got.Raw.Z, [][]float64{{2, 256}}) || !reflect.DeepEqual(got.Z, [][]float64{{1, 128}}) {
 		t.Fatalf("decoded = %#v", got)
 	}
 
@@ -113,7 +113,7 @@ func TestDecodeUnsignedBigEndian8And16(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !reflect.DeepEqual(got.Raw.Z, [][]int64{{1, 2, 3, 4}}) {
+	if !reflect.DeepEqual(got.Raw.Z, [][]float64{{1, 2, 3, 4}}) {
 		t.Fatalf("8-bit = %#v", got.Raw.Z)
 	}
 }
@@ -127,7 +127,7 @@ func TestDecodeSignedLittleEndian32(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !reflect.DeepEqual(got.Raw.Z, [][]int64{{-2, 0x01020304}}) || !reflect.DeepEqual(got.Z, [][]float64{{-1, 0x01020305}}) {
+	if !reflect.DeepEqual(got.Raw.Z, [][]float64{{-2, 0x01020304}}) || !reflect.DeepEqual(got.Z, [][]float64{{-1, 0x01020305}}) {
 		t.Fatalf("decoded = %#v", got)
 	}
 }
@@ -141,7 +141,7 @@ func TestDecodeColumnMajorIntoRows(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !reflect.DeepEqual(got.Raw.Z, [][]int64{{1, 2, 3}, {4, 5, 6}}) {
+	if !reflect.DeepEqual(got.Raw.Z, [][]float64{{1, 2, 3}, {4, 5, 6}}) {
 		t.Fatalf("column-major = %#v", got.Raw.Z)
 	}
 }

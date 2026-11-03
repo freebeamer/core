@@ -468,7 +468,7 @@ func planAxisPtsLayout(axisPts types.A2LAxisPts, recordLayout types.A2LRecordLay
 
 	var offset uint64
 	if noAxisPts, ok := entriesByRole["NO_AXIS_PTS_X"]; ok && noAxisPts.Position < axisEntry.Position {
-		countType, ok := convertDataType(noAxisPts.DataType)
+		countType, ok := convertCountDataType(noAxisPts.DataType)
 		if !ok {
 			return types.DataLayout{}, fmt.Errorf("%w: %q NO_AXIS_PTS_X has data type %q (unsupported in this slice)", ErrUnsupportedRecordLayout, recordLayout.Name, noAxisPts.DataType)
 		}
@@ -522,7 +522,7 @@ func planAxisPtsRescaleLayout(axisPts types.A2LAxisPts, recordLayout types.A2LRe
 	if rescaleEntry.RescalePairs != axisPts.MaxAxisPoints {
 		return types.DataLayout{}, fmt.Errorf("%w: %q has %d rescale pair(s) but AXIS_PTS %q has MaxAxisPoints %d", ErrRescalePairCountMismatch, recordLayout.Name, rescaleEntry.RescalePairs, axisPts.Name, axisPts.MaxAxisPoints)
 	}
-	dataType, ok := convertDataType(rescaleEntry.DataType)
+	dataType, ok := convertCountDataType(rescaleEntry.DataType) // rescale pairs: integer only, see FLOAT32_IEEE evidence
 	if !ok {
 		return types.DataLayout{}, fmt.Errorf("%w: %q AXIS_RESCALE_X has data type %q (unsupported in this slice)", ErrUnsupportedRecordLayout, recordLayout.Name, rescaleEntry.DataType)
 	}
@@ -572,7 +572,7 @@ func rescalePaddingEntrySize(entry types.A2LRecordLayoutEntry) (uint64, bool) {
 		}
 		return 0, false
 	}
-	dataType, ok := convertDataType(entry.DataType)
+	dataType, ok := convertCountDataType(entry.DataType)
 	if !ok {
 		return 0, false
 	}
@@ -687,7 +687,11 @@ func planRecordLayout(characteristic types.A2LCharacteristic, recordLayout types
 	var cumulative uint64
 	for _, entry := range sortedEntries {
 		offsets[entry.Role] = cumulative
-		dataType, ok := convertDataType(entry.DataType)
+		convert := convertDataType
+		if strings.HasPrefix(entry.Role, "NO_") {
+			convert = convertCountDataType
+		}
+		dataType, ok := convert(entry.DataType)
 		if !ok {
 			return recordLayoutPlan{}, fmt.Errorf("%w: %q entry %s has data type %q (unsupported in this slice)", ErrUnsupportedRecordLayout, recordLayout.Name, entry.Role, entry.DataType)
 		}
@@ -845,9 +849,27 @@ func convertDataType(a2lType string) (string, bool) {
 		return "uint32", true
 	case "SLONG":
 		return "int32", true
+	case "FLOAT32_IEEE":
+		return "float32", true
+	case "FLOAT64_IEEE":
+		return "float64", true
 	default:
+		// A_UINT64/A_INT64 and FLOAT16_IEEE stay rejected: see
+		// docs/a2l-v0-plan.md's FLOAT32_IEEE / FLOAT64_IEEE evidence.
 		return "", false
 	}
+}
+
+// convertCountDataType is convertDataType restricted to integer types, for
+// RECORD_LAYOUT entries that hold a count (NO_AXIS_PTS_X/Y, NO_RESCALE_X) or
+// rescale pairs (AXIS_RESCALE_X). No evidence shows a float in either role,
+// and a float count has no meaning, so one is rejected rather than sized.
+func convertCountDataType(a2lType string) (string, bool) {
+	dataType, ok := convertDataType(a2lType)
+	if !ok || dataType == "float32" || dataType == "float64" {
+		return "", false
+	}
+	return dataType, true
 }
 
 func dataTypeBits(mapdefType string) int {
@@ -856,8 +878,10 @@ func dataTypeBits(mapdefType string) int {
 		return 8
 	case "uint16", "int16":
 		return 16
-	case "uint32", "int32":
+	case "uint32", "int32", "float32":
 		return 32
+	case "float64":
+		return 64
 	default:
 		return 0
 	}

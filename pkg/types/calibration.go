@@ -1,9 +1,13 @@
 package types
 
+// RawTable holds each element's stored value before Conversion is applied:
+// the integer for an integer data type, or the IEEE-754 value for float32/
+// float64 (mapdef 1.4+). float64 represents every supported integer width
+// (up to 32 bits) exactly.
 type RawTable struct {
-	X []int64
-	Y []int64
-	Z [][]int64
+	X []float64
+	Y []float64
+	Z [][]float64
 }
 
 type DecodedTable struct {
@@ -23,7 +27,7 @@ type AddressTable struct {
 
 type CalibrationEditResult struct {
 	Requested float64
-	Raw       int64
+	Raw       float64
 	Actual    float64
 	Offset    uint64
 	Bytes     []byte

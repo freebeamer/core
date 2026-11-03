@@ -17,11 +17,13 @@ var (
 	ErrInvalidDimensions    = errors.New("invalid mapdef dimensions")
 	ErrAddressOverflow      = errors.New("mapdef address calculation overflow")
 	ErrInvalidBitPosition   = errors.New("mapdef bit position exceeds storage width")
+	ErrFloatBitPosition     = errors.New("mapdef bit position is not supported for a floating-point data type")
 )
 
 type resolvedDataType struct {
 	bits        int
 	signed      bool
+	float       bool // IEEE-754 binary32 (bits 32) or binary64 (bits 64)
 	endian      binfile.Endian
 	columnMajor bool
 }

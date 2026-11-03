@@ -46,7 +46,7 @@ type EditOutcome struct {
 	Index        int     `json:"index"`
 	Requested    float64 `json:"requested"`
 	Encoded      float64 `json:"encoded"`
-	Raw          int64   `json:"raw"`
+	Raw          float64 `json:"raw"`
 	Address      string  `json:"address"`
 	ChangedBytes int     `json:"changedBytes"`
 	CanUndo      bool    `json:"canUndo"`
@@ -60,8 +60,8 @@ type EditDiff struct {
 	Column      int     `json:"column"`
 	Index       int     `json:"index"`
 	Address     string  `json:"address"`
-	BeforeRaw   int64   `json:"beforeRaw"`
-	AfterRaw    int64   `json:"afterRaw"`
+	BeforeRaw   float64 `json:"beforeRaw"`
+	AfterRaw    float64 `json:"afterRaw"`
 	BeforeValue float64 `json:"beforeValue"`
 	AfterValue  float64 `json:"afterValue"`
 }

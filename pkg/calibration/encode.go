@@ -57,11 +57,8 @@ func (d *Decoder) setCell(parameter types.MapParameter, row, column int, request
 	if err != nil {
 		return nil, definitionError(parameter, "z", err)
 	}
-	if math.IsNaN(rawFloat) || math.IsInf(rawFloat, 0) || rawFloat > math.MaxInt64 || rawFloat < math.MinInt64 {
-		return nil, ErrRawOutOfRange
-	}
-	raw := int64(math.Round(rawFloat))
-	if err := checkRange(raw, dataType, parameter.Layout.BitPosition); err != nil {
+	raw, err := storableRaw(rawFloat, dataType, parameter.Layout.BitPosition)
+	if err != nil {
 		return nil, fmt.Errorf("value %g: %w", requested, err)
 	}
 	rows, columns, _ := dimensions(parameter.Layout)
@@ -95,6 +92,38 @@ func (d *Decoder) setCell(parameter types.MapParameter, row, column int, request
 		Bytes:     append([]byte(nil), encoded...),
 		Previous:  previous,
 	}, nil
+}
+
+// storableRaw turns an inverted conversion result into the exact raw value
+// that will be stored: rounded to the nearest integer and range-checked for
+// an integer type, or rounded to the nearest representable binary32 value
+// for float32 (float64 stores the value unchanged). The returned value is
+// what a subsequent decode reads back, so CalibrationEditResult.Raw never
+// claims more precision than the storage holds.
+func storableRaw(rawFloat float64, dataType resolvedDataType, bitPosition *int) (float64, error) {
+	if math.IsNaN(rawFloat) || math.IsInf(rawFloat, 0) {
+		return 0, ErrRawOutOfRange
+	}
+	if dataType.float {
+		if bitPosition != nil {
+			return 0, ErrFloatBitPosition
+		}
+		if dataType.bits == 32 {
+			if math.Abs(rawFloat) > math.MaxFloat32 {
+				return 0, fmt.Errorf("%w: %g cannot fit float32", ErrRawOutOfRange, rawFloat)
+			}
+			return float64(float32(rawFloat)), nil
+		}
+		return rawFloat, nil
+	}
+	if rawFloat > math.MaxInt64 || rawFloat < math.MinInt64 {
+		return 0, ErrRawOutOfRange
+	}
+	raw := int64(math.Round(rawFloat))
+	if err := checkRange(raw, dataType, bitPosition); err != nil {
+		return 0, err
+	}
+	return float64(raw), nil
 }
 
 func checkRange(value int64, dataType resolvedDataType, bitPosition *int) error {
@@ -144,9 +173,16 @@ func checkRange(value int64, dataType resolvedDataType, bitPosition *int) error 
 // single bit within that word, so sibling bits belonging to other flags
 // packed into the same byte are preserved untouched. It returns the bytes
 // written and the bytes they replaced, for diffing and rollback.
-func (d *Decoder) writeRaw(offset uint64, dataType resolvedDataType, bitPosition *int, raw int64) (encoded, previous []byte, err error) {
+func (d *Decoder) writeRaw(offset uint64, dataType resolvedDataType, bitPosition *int, raw float64) (encoded, previous []byte, err error) {
+	if dataType.float && bitPosition != nil {
+		return nil, nil, ErrFloatBitPosition
+	}
 	if bitPosition == nil {
-		encoded = encodeInteger(raw, dataType)
+		if dataType.float {
+			encoded = encodeFloat(raw, dataType)
+		} else {
+			encoded = encodeInteger(int64(raw), dataType)
+		}
 		previous, err = d.image.Read(offset, len(encoded))
 		if err != nil {
 			return nil, nil, err
@@ -174,6 +210,21 @@ func (d *Decoder) writeRaw(offset uint64, dataType resolvedDataType, bitPosition
 		return nil, nil, err
 	}
 	return encoded, previous, nil
+}
+
+// encodeFloat stores value as IEEE-754 binary32 or binary64 in the layout's
+// byte order. value has already been rounded to float32 by storableRaw.
+func encodeFloat(value float64, dataType resolvedDataType) []byte {
+	if dataType.bits == 32 {
+		return encodeInteger(int64(math.Float32bits(float32(value))), dataType)
+	}
+	result := make([]byte, 8)
+	if dataType.endian == binfile.LittleEndian {
+		binary.LittleEndian.PutUint64(result, math.Float64bits(value))
+	} else {
+		binary.BigEndian.PutUint64(result, math.Float64bits(value))
+	}
+	return result
 }
 
 func encodeInteger(value int64, dataType resolvedDataType) []byte {

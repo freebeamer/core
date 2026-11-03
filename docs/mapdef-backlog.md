@@ -193,8 +193,17 @@ this repository has no configured issue tracker automation.
    interpolated and exact-match-only lookups in both directions, the
    reverse direction requiring the table's output to be monotonic). See
    a2l-v0-plan.md's RAT_FUNC / FORM / COMPU_TAB evidence section.
-   Still explicitly out of scope: `FLOAT32_IEEE`/`FLOAT64_IEEE` (no float
-   member in `layout.dataType`, matching XDF), `ASCII`/`CUBOID`/`CUBE_4`/
+   **Follow-on done:** `FLOAT32_IEEE`/`FLOAT64_IEEE` element types for
+   `FNC_VALUES` and `AXIS_PTS_X/Y`. Mapdef 1.4.0 adds `float32`/`float64` to
+   `layout.dataType`, and `pkg/calibration` reads and writes IEEE-754 using
+   the existing byte-order rules. Raw values are now `float64` throughout
+   (`types.RawTable`, edit results, desktop DTOs) instead of `int64`. Edits
+   store the nearest representable value, and a stored NaN/infinity fails
+   decoding. `FLOAT16_IEEE`, `A_UINT64`/`A_INT64` and float counts stay
+   rejected, and XDF's float flag still needs its own evidence pass. See
+   a2l-v0-plan.md's FLOAT32_IEEE / FLOAT64_IEEE evidence section.
+   Still explicitly out of scope: `FLOAT16_IEEE` and `A_UINT64`/`A_INT64`
+   (see above), `ASCII`/`CUBOID`/`CUBE_4`/
    `CUBE_5` characteristics (string/3-5 dimensional, see above),
    `MEASUREMENT` (live data, an explicit non-goal — its address is RAM,
    needing live ECU communication, not an extension of `pkg/calibration`),

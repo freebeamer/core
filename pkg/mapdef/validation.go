@@ -11,7 +11,7 @@ import (
 
 const (
 	Format         = "freehorse.mapdef"
-	CurrentVersion = "1.3.0"
+	CurrentVersion = "1.4.0"
 )
 
 // Validate checks document structure against the published Draft 2020-12

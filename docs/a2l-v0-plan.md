@@ -14,7 +14,8 @@ evidence"), computed/borrowed/rescale axes via `FIX_AXIS`/`CURVE_AXIS`/
 (see "VAL_BLK evidence"), category membership via `GROUP` (see "GROUP
 evidence"), and the remaining numeric `COMPU_METHOD` conversion types —
 `RAT_FUNC`, `FORM`, `TAB_INTP`, `TAB_NOINTP` (see "RAT_FUNC / FORM /
-COMPU_TAB evidence").
+COMPU_TAB evidence"), and IEEE-754 element types `FLOAT32_IEEE`/
+`FLOAT64_IEEE` (see "FLOAT32_IEEE / FLOAT64_IEEE evidence").
 
 Item 4 of [mapdef-backlog.md](mapdef-backlog.md) asks for "an A2L import
 adapter against a legally available ASAM specification." Before writing any
@@ -851,6 +852,65 @@ the same "decode always works, edit may not" precedent `RAT_FUNC`/`FORM`
 (and, before this slice, XDF's own arbitrary `MATH` formulas) already
 established for non-affine expression conversions.
 
+## FLOAT32_IEEE / FLOAT64_IEEE evidence
+
+Earlier slices rejected every float element type because mapdef's
+`layout.dataType` had no float member. The sources below were read directly
+on 2026-11-03 and not copied. `pkg/a2l/float_test.go` and
+`pkg/calibration/float_test.go` are authored from scratch.
+
+- **Type names.** Both independent datatype enums list `FLOAT32_IEEE` and
+  `FLOAT64_IEEE` next to the integer types: `pyA2L`'s `Datatype` in
+  `pya2l/classes.py`, and `kallemooo/Asap2`'s `DataType` in
+  `Asap2/Asap2Tree/Asap2Base.cs`. The Asap2 grammar reduces that same enum
+  into `FNC_VALUES`, `AXIS_PTS_X/Y/Z/4/5`, `NO_AXIS_PTS_*` and
+  `AXIS_RESCALE_*` alike.
+- **Real usage.** `pyA2L`'s `examples/ASAP2_Demo_V161.a2l` has
+  `RECORD_LAYOUT`s such as `FNC_VALUES 1 FLOAT32_IEEE ROW_DIR DIRECT` (and
+  the `FLOAT64_IEEE` and `COLUMN_DIR` variants), used by scalar `VALUE`
+  characteristics. Its `MOD_COMMON` sets `BYTE_ORDER MSB_LAST` next to
+  `ALIGNMENT_FLOAT32_IEEE 4`/`ALIGNMENT_FLOAT64_IEEE 4`. (Both of its float
+  scalars sit at the same address, `0x810010`. That is a quirk of the demo
+  file and does not describe the layout.)
+- **Encoding.** `pyxcp`'s `pyxcp/asam/types.py` (LGPL-3.0, read only) codes
+  `A_Float32`/`A_Float64` as IEEE-754 binary32/binary64 (`struct` formats
+  `f`/`d`). It uses the same `<`/`>` byte-order switch as its integer codecs,
+  so `BYTE_ORDER` resolves for a float exactly as for a multi-byte integer.
+
+What this slice does:
+
+- `FLOAT32_IEEE` → `layout.dataType: "float32"`, `FLOAT64_IEEE` →
+  `"float64"` (mapdef 1.4.0), for `FNC_VALUES` and `AXIS_PTS_X/Y`. Float
+  `FNC_VALUES` has a real example. Float axis points have grammar evidence
+  only, and use the same storage apart from element width.
+- Byte order uses the existing rules: `MOD_COMMON` default,
+  `CHARACTERISTIC` override, no assumed default, and mixed orders rejected.
+- `pkg/calibration` now holds raw values as `float64` (`types.RawTable`,
+  `CalibrationEditResult.Raw` and the desktop DTOs). That represents every
+  supported integer exactly and holds the IEEE value of a float element.
+  Storing a float's bit pattern in the old `int64` would lose precision in
+  JSON once it reaches the desktop's JavaScript, since binary64 patterns
+  exceed 2^53.
+- An edit stores the nearest representable value: rounded to binary32 for
+  `float32` (a request above `math.MaxFloat32` is `ErrRawOutOfRange`) and
+  unchanged for `float64`. The edit result reports the stored value, not the
+  request.
+- A stored NaN or infinity fails decoding with `expression.ErrNonFinite`.
+  It is never displayed or edited as a number.
+
+Still rejected:
+
+- `FLOAT16_IEEE`. It appears only in `pyA2L`'s enum, with no real example,
+  and is absent from `kallemooo/Asap2`.
+- Floats in a count (`NO_AXIS_PTS_*`, `NO_RESCALE_X`) or in `RES_AXIS`
+  rescale pairs. There is no example, and a float count has no meaning.
+- `bitPosition` on a float layout (`calibration.ErrFloatBitPosition`).
+- `A_UINT64`/`A_INT64`. Values above 2^53 cannot cross the desktop's JSON
+  boundary exactly, so they need a representation decision of their own.
+- XDF's float type flag (`mmedtypeflags` `0x10000`) is still diagnosed as
+  unsupported. The engine can now decode floats, but this slice gathered
+  A2L evidence only. TunerPro's float convention gets its own evidence pass.
+
 ## Grammar subset for this slice
 
 A2L is a custom keyword-block text format, not XML — `encoding/xml` doesn't
@@ -937,7 +997,7 @@ ASAP2_VERSION <major> <minor>
       FNC_VALUES <Position> <DataType> <IndexMode> <AddrType>
                                           IndexMode ROW_DIR|COLUMN_DIR;
                                           DataType one of
-                                          UBYTE|SBYTE|UWORD|SWORD|ULONG|SLONG
+                                          UBYTE|SBYTE|UWORD|SWORD|ULONG|SLONG|FLOAT32_IEEE|FLOAT64_IEEE
                                           (FLOAT32_IEEE/FLOAT64_IEEE and any
                                           other value: unsupported)
                                           Every AddrType above must be DIRECT.
@@ -1114,6 +1174,10 @@ purely additive (a 1.2.0 document only ever used
 `"freehorse-expression-v1"`), so `migrateV1_2_0ToV1_3_0` is likewise a
 version-number bump only.
 
+The 1.4.0 bump adds `"float32"`/`"float64"` to `layout.dataType`. A 1.3.0
+document could not describe a float element, so `migrateV1_3_0ToV1_4_0` is
+also a version-number bump only.
+
 ## Delivery
 
 1. `pkg/types/a2l.go` — normalized model (`A2LDefinition`, `A2LModule`,
@@ -1129,8 +1193,9 @@ version-number bump only.
 4. `pkg/types/mapdef.go`, `schemas/mapdef-v1.schema.json` (and its embedded
    copy), `pkg/mapdef/validation.go`, `pkg/mapdef/migrate.go` —
    `axis.fixedPoints`, `formatVersion` 1.2.0/1.3.0, the
-   `freehorse-lookup-table-v1` conversion shape, and their migration steps
-   (version bumps only, see "Mapping to mapdef").
+   `freehorse-lookup-table-v1` conversion shape, the 1.4.0 `float32`/
+   `float64` data types, and their migration steps (version bumps only, see
+   "Mapping to mapdef").
 5. `pkg/calibration/decode.go`, `pkg/calibration/lookup_table.go` —
    `decodeAxis` now handles an axis with no `Layout` at all (`FixedPoints`)
    and an axis-specific stride override for `RES_AXIS`'s interleaved
@@ -1139,7 +1204,8 @@ version-number bump only.
    `*expression.Expression` and the new `lookupTable` type (for
    `TAB_INTP`/`TAB_NOINTP`) — the only calibration engine changes any A2L
    or XDF slice has needed besides the earlier bit-position decode work
-   for XDF flags.
+   for XDF flags. The float slice then added IEEE-754 read/write and moved
+   raw values to `float64` (see "FLOAT32_IEEE / FLOAT64_IEEE evidence").
 6. `cmd/freebeamer/command_a2l.go` — `freebeamer a2l info FILE` and
    `freebeamer a2l convert FILE --output DEFINITION.mapdef`, mirroring the
    `xdf` command surface.

@@ -317,7 +317,7 @@ func TestConvertDecodesAndEditsThroughCalibration(t *testing.T) {
 		t.Fatal(err)
 	}
 	if result.Raw != 100 {
-		t.Fatalf("boost raw after edit = %d, want 100", result.Raw)
+		t.Fatalf("boost raw after edit = %g, want 100", result.Raw)
 	}
 	if image.Bytes()[0x101] != 100 {
 		t.Fatalf("boost byte after edit = %d, want 100", image.Bytes()[0x101])
@@ -601,25 +601,34 @@ func TestConvertRejectsMultiByteWithoutDeclaredByteOrder(t *testing.T) {
 }
 
 func TestConvertRejectsUnsupportedRecordLayoutDataType(t *testing.T) {
-	source := syntheticSource(t, `
+	// FLOAT16_IEEE appears only in pyA2L's Datatype enum (no real example,
+	// absent from kallemooo/Asap2); A_UINT64/A_INT64 cannot survive JSON
+	// delivery to the desktop above 2^53. See the a2l-v0-plan.md
+	// FLOAT32_IEEE / FLOAT64_IEEE evidence.
+	for _, dataType := range []string{"FLOAT16_IEEE", "A_UINT64", "A_INT64"} {
+		source := syntheticSource(t, `
+    /begin MOD_COMMON ""
+      BYTE_ORDER MSB_FIRST
+    /end MOD_COMMON
     /begin COMPU_METHOD CM.IDENTICAL
       "identity"
       IDENTICAL "%3.0" "counts"
     /end COMPU_METHOD
     /begin RECORD_LAYOUT RL
-      FNC_VALUES 1 FLOAT32_IEEE ROW_DIR DIRECT
+      FNC_VALUES 1 `+dataType+` ROW_DIR DIRECT
     /end RECORD_LAYOUT
     /begin CHARACTERISTIC C
-      "float, not supported in this slice"
+      "not supported in this slice"
       VALUE
       0x100
       RL
       0
       CM.IDENTICAL
-      -1e24 1e24
+      -1 1
     /end CHARACTERISTIC`)
-	if _, err := (Converter{}).Convert(source, "test.a2l"); !errors.Is(err, ErrUnsupportedRecordLayout) {
-		t.Fatalf("error = %v, want ErrUnsupportedRecordLayout", err)
+		if _, err := (Converter{}).Convert(source, "test.a2l"); !errors.Is(err, ErrUnsupportedRecordLayout) {
+			t.Fatalf("%s: error = %v, want ErrUnsupportedRecordLayout", dataType, err)
+		}
 	}
 }
 
