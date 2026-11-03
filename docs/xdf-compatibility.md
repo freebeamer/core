@@ -24,7 +24,8 @@ is supported for decoding or editing.
 | Signed values | Yes | Explicit data type | Yes | Supported |
 | MSB/LSB-first | Yes | Explicit byte order | Yes | Supported |
 | Row/column-major Z layout | Yes | Explicit order | Yes | Supported |
-| Non-zero major/minor strides | Yes | Preserved and warned | No | Explicit `xdf.unsupported-stride` diagnostic |
+| Major stride equal to the element width, minor stride 0, on a one-dimensional run (an axis, or a table with one row or column) | Yes | Contiguous storage (`strideBits: [0, 0]`) with an `xdf.contiguous-stride` info diagnostic | Yes | All available readers agree; a2l2xdf writes this for packed data. See stride evidence below |
+| Any other non-zero major/minor stride | Yes | Preserved in `strideBits` and warned (`xdf.unsupported-stride`); an axis is also marked `dataType: "unknown"` | No | Readers disagree. Decoding fails visibly rather than using a guessed step |
 | IEEE-754 storage (`0x10000`), 32-bit cells | Yes | `layout.dataType: "float32"` (mapdef 1.4+); `0x02`/`0x04` keep their meaning | Yes | On tables, axes and constants. A set signed bit is ignored with an `xdf.float-signed-ignored` info diagnostic. See IEEE-754 evidence below |
 | IEEE-754 storage with 8/16/64-bit cells, or on an `XDFFLAG` | Recognized | Marked `unknown` and warned | No | TunerPro documents only 8/16/32-bit cells; no real XDF with a 64-bit float or a float-backed flag was found |
 | Unknown `mmedtypeflags` bits | Preserved | Marked `unknown` and warned | No | Explicit diagnostic |
@@ -184,10 +185,63 @@ What follows from this:
   same way `signed`/`lsbfirst` defaults already work. Only MxT parses it this
   way, and no real file with `float="1"` was found.
 
-Known follow-on: a2l2xdf writes `mmedmajorstridebits` equal to the element
-width for contiguous data. FreeBeamer still rejects any non-zero stride
-(153 diagnostics in the Simos18 file). That is a separate stride question
-and needs its own evidence.
+a2l2xdf also writes `mmedmajorstridebits` equal to the element width for
+contiguous data; see the stride evidence below.
+
+### Stride evidence
+
+TunerPro's help pages do not document `mmedmajorstridebits`/
+`mmedminorstridebits`. The sources below were read on 2026-11-03 and not
+copied.
+
+- `TunerPro-XDF-BIN-Universal-Exporter` (commit `b098ac5`):
+  - Axes: the step between elements is `major / 8` bytes, and 0 means the
+    element width. A non-zero minor stride is refused.
+  - Tables (`tunerpro_xdf/xdf_addressing.py`): `major` and `minor` in
+    {0, element width} mean packed storage. A lone major stride on a single
+    row or column is the cell step.
+  - Edits are allowed only on packed layouts. Everything else waits for
+    "native TunerPro parity".
+- TuneItVerse (`src-tauri/src/xdf.rs`): states that a2l2xdf writes
+  `major = element size` and `minor = 0` for contiguous tables. It reads a
+  larger major stride as the cell step but marks it read-only and
+  "unverified", and refuses any non-zero minor stride.
+- MxT (`data/parser/bin/BinParser.kt`): on axes, steps by the element size
+  plus `minor / 8`, ignoring `major`. On tables, `major` is the row pitch
+  and `minor` is per-element padding.
+- a2l2xdf: writes `mmedmajorstridebits` equal to the element width and
+  `minor = 0` on every axis and table it generates.
+- Real files: in the VW Simos18 XDF, 153 addressed X/Y axes use
+  `major = element width`, `minor = 0`. In MxT's ME7 example XDF (Apache-2.0),
+  264 do. Every Z table in both files, and in the GM E78 file, has zero
+  strides. Negative strides appear only on unaddressed virtual axes, which
+  are already skipped.
+
+The readers agree on one case: a one-dimensional run (an axis, or a table
+with a single row or column) with `major = element width` and `minor = 0`.
+That is packed storage, and FreeBeamer normalises it to `strideBits: [0, 0]`.
+They disagree on everything else:
+
+- On a genuinely 2D table, `major` is the row pitch for MxT but packed for
+  the exporter. Under MxT's reading, `major = element width` would overlap
+  rows.
+- A non-zero minor stride is packed for the exporter, padding for MxT, and
+  refused by TuneItVerse.
+- A major stride wider than the element is the step for the exporter, read
+  as unverified by TuneItVerse, and ignored on axes by MxT.
+- A major stride narrower than the element: the exporter reports overlapping
+  breakpoints in an MS42 definition. Nothing corroborates it.
+
+These stay unsupported. They used to be only a warning. Since
+`pkg/calibration` gained A2L `RES_AXIS` support, it decodes a single non-zero
+axis stride, so an XDF axis with an unestablished stride was being decoded
+with the exporter's reading despite the "not decoded" warning. An axis with an
+unsupported stride is now marked `dataType: "unknown"` and fails to decode.
+Table strides were already refused by the engine.
+
+All three real files above convert with no unsupported-stride diagnostics.
+The private MEVD17.2.6 fixture decodes all 969 parameters identically
+before and after this change.
 
 ### XDFFLAG mask evidence
 

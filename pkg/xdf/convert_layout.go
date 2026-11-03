@@ -15,7 +15,10 @@ const (
 	knownTypeFlags  = typeSigned | typeLSBFirst | typeColumnMajor | typeFloat
 )
 
-func convertLayout(embedded types.XDFEmbeddedData, defaults types.XDFDefaults, dimensions []int, path string) (types.DataLayout, []types.ImportDiagnostic) {
+// convertLayout converts one EMBEDDEDDATA. Its third result reports a
+// non-zero stride whose layout is not established; callers whose decode path
+// would otherwise honour a stride (axes) must not let it decode.
+func convertLayout(embedded types.XDFEmbeddedData, defaults types.XDFDefaults, dimensions []int, path string) (types.DataLayout, []types.ImportDiagnostic, bool) {
 	flags := effectiveTypeFlags(embedded, defaults)
 	bits := embedded.ElementSizeBits
 	if bits == 0 {
@@ -29,8 +32,16 @@ func convertLayout(embedded types.XDFEmbeddedData, defaults types.XDFDefaults, d
 	} else if flags&typeFloat != 0 && flags&typeSigned != 0 {
 		diagnostics = append(diagnostics, floatSignedIgnoredDiagnostic(path))
 	}
-	if embedded.MajorStrideBits != 0 || embedded.MinorStrideBits != 0 {
-		diagnostics = append(diagnostics, unsupportedStrideDiagnostic(path))
+	strideBits := []int{embedded.MajorStrideBits, embedded.MinorStrideBits}
+	unsupportedStride := false
+	switch {
+	case embedded.MajorStrideBits == 0 && embedded.MinorStrideBits == 0:
+	case contiguousStride(embedded, bits, dimensions):
+		strideBits = []int{0, 0}
+		diagnostics = append(diagnostics, contiguousStrideDiagnostic(path, embedded.MajorStrideBits))
+	default:
+		unsupportedStride = true
+		diagnostics = append(diagnostics, unsupportedStrideDiagnostic(path, embedded))
 	}
 
 	return types.DataLayout{
@@ -39,8 +50,29 @@ func convertLayout(embedded types.XDFEmbeddedData, defaults types.XDFDefaults, d
 		ByteOrder:  byteOrder(bits, flags),
 		Dimensions: dimensions,
 		Order:      storageOrder(dimensions, flags),
-		StrideBits: []int{embedded.MajorStrideBits, embedded.MinorStrideBits},
-	}, diagnostics
+		StrideBits: strideBits,
+	}, diagnostics, unsupportedStride
+}
+
+// contiguousStride reports the one stride shape every available source reads
+// the same way: a one-dimensional run (an axis, or a table with a single row
+// or column) whose major stride equals the element width and whose minor
+// stride is zero. That is plain packed storage; a2l2xdf writes it for every
+// contiguous axis. Readers disagree about a major stride on a genuinely 2D
+// table (row pitch or cell step) and about any non-zero minor stride (packed
+// or padding), so those stay unsupported. See xdf-compatibility.md's stride
+// evidence section.
+func contiguousStride(embedded types.XDFEmbeddedData, bits int, dimensions []int) bool {
+	if embedded.MinorStrideBits != 0 || bits <= 0 || embedded.MajorStrideBits != bits {
+		return false
+	}
+	longDimensions := 0
+	for _, dimension := range dimensions {
+		if dimension > 1 {
+			longDimensions++
+		}
+	}
+	return longDimensions <= 1
 }
 
 func effectiveTypeFlags(embedded types.XDFEmbeddedData, defaults types.XDFDefaults) uint64 {
@@ -145,11 +177,20 @@ func floatSignedIgnoredDiagnostic(path string) types.ImportDiagnostic {
 	}
 }
 
-func unsupportedStrideDiagnostic(path string) types.ImportDiagnostic {
+func contiguousStrideDiagnostic(path string, majorBits int) types.ImportDiagnostic {
+	return types.ImportDiagnostic{
+		Severity: "info",
+		Code:     "xdf.contiguous-stride",
+		Path:     path,
+		Message:  fmt.Sprintf("XDF major stride of %d bits equals the element width on a one-dimensional run; decoded as contiguous storage.", majorBits),
+	}
+}
+
+func unsupportedStrideDiagnostic(path string, embedded types.XDFEmbeddedData) types.ImportDiagnostic {
 	return types.ImportDiagnostic{
 		Severity: "warning",
 		Code:     "xdf.unsupported-stride",
 		Path:     path,
-		Message:  "Non-zero XDF strides are preserved but not decoded by FreeBeamer V0.",
+		Message:  fmt.Sprintf("XDF stride (major %d bits, minor %d bits) is preserved but its layout is not established; this element is not decoded.", embedded.MajorStrideBits, embedded.MinorStrideBits),
 	}
 }

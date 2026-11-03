@@ -63,10 +63,13 @@ this repository has no configured issue tracker automation.
      32-bit cells convert to `layout.dataType: "float32"` (mapdef 1.4+) on
      tables, axes and constants. 8/16/64-bit float cells and float-backed
      flags stay diagnosed. See
-     [xdf-compatibility.md](xdf-compatibility.md#ieee-754-evidence). Open
-     follow-on from that pass: a2l2xdf-generated XDFs set
-     `mmedmajorstridebits` to the element width for contiguous data, which is
-     still rejected as a non-zero stride.
+     [xdf-compatibility.md](xdf-compatibility.md#ieee-754-evidence).
+   - **Done (2026-11-03)** — contiguous strides: a major stride equal to the
+     element width with minor 0, on a one-dimensional run, decodes as packed
+     storage. a2l2xdf writes this on every axis. Other strides stay
+     unsupported, and an axis with one is now refused at decode instead of
+     being silently read with a guessed step. See
+     [xdf-compatibility.md](xdf-compatibility.md#stride-evidence).
 
    Item 3 is now fully addressed to the extent current evidence supports.
 4. **In progress — V0 slice done.** The official ASAM MCD-2 MC (A2L)

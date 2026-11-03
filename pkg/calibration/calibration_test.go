@@ -175,7 +175,7 @@ func TestDecodeReportsInvalidDefinitionsWithoutPanicking(t *testing.T) {
 		mutate func(*types.XDFAxis)
 		target error
 	}{
-		{"stride", func(a *types.XDFAxis) { a.Embedded.MajorStrideBits = 8 }, ErrUnsupportedStride},
+		{"stride", func(a *types.XDFAxis) { a.Embedded.MajorStrideBits = 16 }, ErrUnsupportedStride},
 		{"bounds", func(a *types.XDFAxis) { a.Embedded.Address = 100 }, binfile.ErrOutOfBounds},
 	}
 	for _, test := range tests {

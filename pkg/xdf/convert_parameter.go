@@ -11,7 +11,7 @@ func convertTable(table types.XDFTable, index int, defaults types.XDFDefaults, c
 	rows := positiveOrOne(table.Z.Embedded.RowCount)
 	columns := positiveOrOne(table.Z.Embedded.ColumnCount)
 	path := fmt.Sprintf("tables[%d].z", index)
-	layout, diagnostics := convertLayout(table.Z.Embedded, defaults, []int{rows, columns}, path)
+	layout, diagnostics, _ := convertLayout(table.Z.Embedded, defaults, []int{rows, columns}, path) // a parameter layout's stride is always rejected at decode
 
 	sourceMetadata := map[string]interface{}{"xdf.attributes": table.Raw}
 	if table.Z.Min != nil || table.Z.Max != nil {
@@ -101,7 +101,13 @@ func convertAxis(source types.XDFAxis, name string, tableIndex int, defaults typ
 	if _, addressed := source.Embedded.Raw["mmedaddress"]; !addressed {
 		return axis, nil
 	}
-	layout, layoutDiagnostics := convertLayout(source.Embedded, defaults, []int{count}, path)
+	layout, layoutDiagnostics, unsupportedStride := convertLayout(source.Embedded, defaults, []int{count}, path)
+	if unsupportedStride {
+		// pkg/calibration decodes a single non-zero axis stride (A2L
+		// RES_AXIS). An unestablished XDF stride must fail visibly instead
+		// of decoding with a guessed step.
+		layout.DataType = "unknown"
+	}
 	axis.Layout = &layout
 	return axis, layoutDiagnostics
 }
@@ -135,7 +141,7 @@ func boundsMap(min, max *float64) map[string]interface{} {
 
 func convertFlag(flag types.XDFFlag, index int, defaults types.XDFDefaults, categories map[int]string) (types.MapParameter, []types.ImportDiagnostic) {
 	path := fmt.Sprintf("flags[%d]", index)
-	layout, diagnostics := convertLayout(flag.Embedded, defaults, []int{1}, path)
+	layout, diagnostics, _ := convertLayout(flag.Embedded, defaults, []int{1}, path)
 	if layout.DataType == "float32" {
 		// No evidence shows an XDFFLAG over IEEE-754 storage, and a bit
 		// position has no meaning in a float, so this stays unsupported.
@@ -213,7 +219,7 @@ func dataTypeBits(dataType string) int {
 
 func convertConstant(constant types.XDFConstant, index int, defaults types.XDFDefaults, categories map[int]string) (types.MapParameter, []types.ImportDiagnostic) {
 	path := fmt.Sprintf("constants[%d]", index)
-	layout, diagnostics := convertLayout(constant.Embedded, defaults, []int{1}, path)
+	layout, diagnostics, _ := convertLayout(constant.Embedded, defaults, []int{1}, path)
 	sourceMetadata := map[string]interface{}{
 		"xdf.attributes":         constant.Raw,
 		"xdf.embeddedAttributes": constant.Embedded.Raw,

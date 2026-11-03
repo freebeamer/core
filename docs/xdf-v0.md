@@ -29,10 +29,11 @@ The initial `00000FEF81A001.xdf` uses addressed combinations `0x00`, `0x01`,
 `0x02`, `0x03`, `0x06`, and `0x07`, with 8-, 16-, and 32-bit integers. Tests
 cover each behavior and reject unknown bits.
 
-Non-zero major/minor stride is not decoded. In the initial fixture, negative
-major strides occur on virtual, unaddressed axes; these are safely skipped.
-Any addressed axis using a non-zero stride produces an explicit error until its
-layout is independently validated.
+In the initial fixture, negative major strides occur on virtual, unaddressed
+axes; these are safely skipped. A major stride equal to the element width on a
+one-dimensional run is decoded as contiguous storage. Any other non-zero
+stride on an addressed element produces an explicit error. See the stride
+evidence in [xdf-compatibility.md](xdf-compatibility.md#stride-evidence).
 
 IEEE-754 data was outside V0. It is now supported for 32-bit cells; see the
 IEEE-754 evidence section in [xdf-compatibility.md](xdf-compatibility.md#ieee-754-evidence).
