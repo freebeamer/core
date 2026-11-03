@@ -8,6 +8,14 @@ implemented and tested (unit tests plus a real end-to-end smoke test — see
 will be the relay's real-world client is a separate, not-yet-built piece —
 see "Non-goals" below.
 
+Status update (2026-11-03): the original status above is kept as the record
+of this slice. Since then, every item under "Next steps" has shipped. The
+Flutter mobile app is the relay's real client, the desktop app consumes
+`GET /v1/live`, and the relay deploys to the project owner's host through the
+relay repository's `Deploy` workflow (first successful run 2026-09-17). Static
+per-client API keys were replaced by device pairing (see "Auth"). Current status is
+tracked in the [live-data plan](live-data-and-vehicle-mapping-plan.md).
+
 ## Why this exists
 
 `docs/mhd-live-monitor-v0-plan.md` built `pkg/doip`/`pkg/mhd` (the DoIP/UDS

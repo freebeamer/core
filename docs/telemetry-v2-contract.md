@@ -11,7 +11,8 @@ plus `session` and `sequence`. Session contains an opaque random `id`,
 `catalog_id: "mhd.mg1.monitor"`, `catalog_version: 1`, and optional `vehicle`
 (label, ECU family, software). Vehicle metadata is an operator claim, never a
 validated match. Missing vehicle means unknown. Customer identity comes only from
-the authenticated API key, not the request body. Device IDs are not vehicle IDs.
+the authenticated client credential (originally a static API key, now a device
+session from Ed25519 pairing), not the request body. Device IDs are not vehicle IDs.
 
 Session IDs change on each acquisition connection. Sequences start at zero and
 increase for each acquired sample, up to JavaScript's exact integer limit
