@@ -423,10 +423,14 @@ only.
 Tests: `operating-point.spec.ts` (deterministic replay onto expected cells,
 edges, conversion, stale/session/missing cases, chart coordinates),
 `operating-point-store.spec.ts` (association gating, workspace and session
-switches) and overlay cases in `map-editor.spec.ts`. The overlay has not yet
-been exercised against a real workspace with a live association in the desktop
-app. The physical vehicle → Android → relay → desktop trial below remains
-outstanding.
+switches) and overlay cases in `map-editor.spec.ts`. On 2026-11-04 the overlay was
+exercised end-to-end against a live association in the running desktop app: a
+synthetic sweeping RPM/LOAD feed (`relay/cmd/feed`) → relay → desktop, with a
+vehicle profile binding a 2D map's X←RPM and Y←LOAD. The overlay located the
+operating point between the correct breakpoints and tracked the sweep (recorded
+in [the soak-test doc](live-data-soak-test.md)). That exercises the desktop UI
+path with synthetic data only; the physical vehicle → Android → relay → desktop
+trial below remains outstanding.
 
 ## Documentation and completion
 

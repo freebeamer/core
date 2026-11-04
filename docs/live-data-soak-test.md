@@ -94,6 +94,8 @@ WebKitGTK 4.1, GTK 3, Python GI bindings, and `xvfb-run`. From the repository ro
 ```sh
 .tools/go/bin/go build -o /tmp/freebeamer-4b ./cmd/freebeamer
 .tools/go/bin/go build -o /tmp/freebeamer-relay-4b ./cmd/freebeamer-relay
+# the smoke harness mints its device session with this helper (from the desktop repo)
+.tools/go/bin/go build -o /tmp/freebeamer-relay-session ./scripts/relay-session
 # Terminal 1: run the real desktop backend and Angular development server.
 PATH="$PWD/.tools/go/bin:$PWD/.tools/bin:$PATH" GDK_BACKEND=x11 xvfb-run -a \
   .tools/bin/wails dev -tags webkit2_41 -s -skipbindings -m -nosyncgomod \
@@ -156,3 +158,29 @@ regressions do not establish hours-long stability or vehicle compatibility.
 Recorded WebKitGTK UI from that mock run:
 
 ![Live-data viewer displaying mock CLI readings](assets/freebeamer-live-data.png)
+
+
+## Operating-point overlay live-association run (2026-11-04)
+
+The Phase 6 operating-point overlay was driven end-to-end in the running
+desktop app against a live association, without a vehicle. Setup:
+
+- `relay/cmd/feed` ran a local relay (temp SQLite) and streamed a synthetic v2
+  telemetry feed sweeping `RPM` (800–6500) and `LOAD` (0–100 %) on a 20 s loop.
+- The desktop (headless `wails dev` under `xvfb`, the same bridge as the 4b
+  run) connected its Live-data garage to that relay with the relay admin token
+  and selected the `bench-feed` source — `connected`, `Fresh`, 0 missing.
+- A synthetic XDF+BIN fixture with one 2D map (`X` axis in `rpm`, `Y` axis in
+  `%`, breakpoints spanning the sweep) was opened, and a vehicle profile bound
+  the map's `X`←`RPM` and `Y`←`LOAD` (identity unit conversions) and was
+  associated (manual, so "Unverified Profile").
+- With the map open and the overlay enabled, the operating-point readout
+  tracked the live sweep, e.g. `X RPM = 5845.97 rpm: between 4500 and 6500`,
+  `Y LOAD = 81.87 %: between 66 and 100`, with the bracketing grid cells
+  outlined and the "position from measured axis values, not the ECU's own cell
+  selection" caveat shown. Successive samples showed different bracketed
+  values, confirming live tracking.
+
+This is synthetic-data UI evidence for the overlay's live-association path. It
+does not establish vehicle compatibility; the physical trial in the
+[implementation plan](live-data-and-vehicle-mapping-plan.md) remains pending.
