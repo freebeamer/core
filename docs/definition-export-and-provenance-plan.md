@@ -40,7 +40,7 @@ Float raws compare bit-for-bit.
 
 | ID | Invariant | Meaning | Testable today? |
 | --- | --- | --- | --- |
-| I1 | Decode equivalence | For any BIN, decoding through the source format's own semantics (an independent oracle) and through the converted mapdef gives identical raw values, physical values and addresses. | Yes. `pkg/xdf/mapdef_test.go` already does this for the basic fixture, and [Phase 4](phase4-oracle-validation.md) did it against an independent exporter. A2L has fixture round trips but no independent oracle. |
+| I1 | Decode equivalence | For any BIN, decoding through the source format's own semantics (an independent oracle) and through the converted mapdef gives identical raw values, physical values and addresses. | Partly. `pkg/xdf/mapdef_test.go` does this for XDF against a byte-level oracle, and [Phase 4](phase4-oracle-validation.md) against an independent exporter. A2L has no independent oracle, so the cross-fixture harness (`TestFixtureDecodeInvariants`) checks round-trip invariants there instead of equivalence. |
 | I2 | Edit equivalence | An edit through mapdef writes the same bytes an edit under source-format semantics would. Neighbouring bytes stay untouched. | Partly. Covered by engine tests, not by an external oracle. |
 | I3 | Mapdef fixed point | `import(export(D))` equals `D`, except for declared non-semantic fields (`id`, `importDiagnostics`, `provenance.convertedBy`, `provenance.sourceSha256`, `extensions.*.rawDocument`). | No. Needs an exporter. |
 | I4 | Source equivalence | For a document imported from format F, `export_F(import_F(S))` satisfies I1 against `S` on every BIN. Every construct the importer did not interpret is either carried through unchanged or named in a loss report. Byte-identical source text is **not** required. | No. Needs an exporter. |
@@ -154,7 +154,13 @@ xdf-compatibility.md still need counsel.
 ## Proposed delivery order
 
 1. I1 invariant harness across all XDF and A2L fixtures (item 5, no export).
-   **Still to do.**
+   **Done (2026-11-04)** — `pkg/calibration`'s `TestFixtureDecodeInvariants`
+   converts every XDF/A2L fixture, decodes each parameter against a
+   definition-sized image, and asserts decode determinism, finiteness, and
+   edit round-trip stability (idempotent, no drift), skipping decode-only
+   conversions. It is not an independent-oracle equivalence check — that stays
+   XDF-only in pkg/xdf's own byte-level test — but it is the cross-fixture
+   round-trip test bed the exporter gate (I3/I4) will extend.
 2. **Done (2026-11-04)** — `mapdef.ReviewForSharing` and
    `freebeamer mapdef review [--require-shareable] [--json]`. Reports licence
    `unknown` and an embedded source for every converted file, severity `ok`

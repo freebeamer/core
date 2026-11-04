@@ -226,8 +226,13 @@ this repository has no configured issue tracker automation.
    **Invariants defined, export still disabled.**
    [definition-export-and-provenance-plan.md](definition-export-and-provenance-plan.md)
    names the round-trip invariants (I1–I6), lists what each target format can
-   represent, and sets the gate an exporter must pass. It recommends an I1
-   decode-equivalence harness before any exporter.
+   represent, and sets the gate an exporter must pass. A cross-fixture
+   decode/round-trip invariant harness now runs over every XDF and A2L fixture
+   (`pkg/calibration`'s `TestFixtureDecodeInvariants`): decode determinism and
+   finiteness, and edit round-trip stability, for every supported parameter.
+   It is the test bed a future exporter's round-trip checks build on; strict
+   decode-equivalence against an independent oracle remains XDF-only (pkg/xdf's
+   own byte-level conversion test).
 6. Add user-facing provenance/licence review before exporting or sharing a
    converted definition. **Done (2026-11-04).** `pkg/mapdef.ReviewForSharing`
    returns a structured review (author, licence, source digest, the user's
