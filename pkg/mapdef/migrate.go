@@ -27,6 +27,7 @@ var migrations = map[string]migrationStep{
 	"1.1.0": migrateV1_1_0ToV1_2_0,
 	"1.2.0": migrateV1_2_0ToV1_3_0,
 	"1.3.0": migrateV1_3_0ToV1_4_0,
+	"1.4.0": migrateV1_4_0ToV1_5_0,
 }
 
 // Migrate upgrades a copy of document to CurrentVersion, applying adjacent
@@ -139,6 +140,18 @@ func migrateV1_3_0ToV1_4_0(document *types.MapDefinition) types.ImportDiagnostic
 		Severity: "info",
 		Code:     "mapdef.migrated-1.3.0-to-1.4.0",
 		Message:  "Migrated from mapdef 1.3.0 to 1.4.0; no data changes (1.4 only adds the float32/float64 data types).",
+	}
+}
+
+// migrateV1_4_0ToV1_5_0 is a version bump only: mapdef 1.5 adds the optional
+// provenance.redistribution assertion. A 1.4.0 document simply has no such
+// value, which reads as "unknown", so there is nothing to promote.
+func migrateV1_4_0ToV1_5_0(document *types.MapDefinition) types.ImportDiagnostic {
+	document.FormatVersion = "1.5.0"
+	return types.ImportDiagnostic{
+		Severity: "info",
+		Code:     "mapdef.migrated-1.4.0-to-1.5.0",
+		Message:  "Migrated from mapdef 1.4.0 to 1.5.0; no data changes (1.5 only adds the optional provenance.redistribution assertion).",
 	}
 }
 

@@ -33,6 +33,11 @@ type MapProvenance struct {
 	SourceVersion string `json:"sourceVersion,omitempty"`
 	SourceSHA256  string `json:"sourceSha256,omitempty"`
 	ConvertedBy   string `json:"convertedBy,omitempty"`
+	// Redistribution is the user's own, unverified assertion about whether
+	// they may redistribute this converted definition: "permitted",
+	// "not-permitted", or "unknown". Absent means "unknown". It is never
+	// inferred from the file's contents or its download location (mapdef 1.5+).
+	Redistribution string `json:"redistribution,omitempty"`
 }
 
 type MapMemory struct {

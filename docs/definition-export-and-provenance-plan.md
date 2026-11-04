@@ -154,13 +154,18 @@ xdf-compatibility.md still need counsel.
 ## Proposed delivery order
 
 1. I1 invariant harness across all XDF and A2L fixtures (item 5, no export).
-2. `mapdef.ReviewForSharing` and `freebeamer mapdef review` against the
-   current schema (item 6). This works today: it reports licence `unknown`
-   and an embedded source for every converted file.
-3. Convert-time provenance flags.
-4. mapdef 1.5 `provenance.redistribution` and its migration.
-5. `mapdef strip-source`.
+   **Still to do.**
+2. **Done (2026-11-04)** — `mapdef.ReviewForSharing` and
+   `freebeamer mapdef review [--require-shareable] [--json]`. Reports licence
+   `unknown` and an embedded source for every converted file, severity `ok`
+   only when redistribution is `permitted` and a licence is recorded.
+3. **Done** — convert-time `--author`/`--license`/`--source-url` on
+   `xdf convert` and `a2l convert`.
+4. **Done** — mapdef 1.5 `provenance.redistribution` and its migration
+   (`migrateV1_4_0ToV1_5_0`, version bump only).
+5. **Done** — `freebeamer mapdef strip-source FILE --output OUT`.
 6. Only then, if wanted: an experimental XDF exporter behind the gate above.
+   **Not started; export stays disabled.**
 
 ## Decisions for the project owner
 

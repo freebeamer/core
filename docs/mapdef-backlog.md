@@ -229,9 +229,16 @@ this repository has no configured issue tracker automation.
    represent, and sets the gate an exporter must pass. It recommends an I1
    decode-equivalence harness before any exporter.
 6. Add user-facing provenance/licence review before exporting or sharing a
-   converted definition. **Design proposed** in the same plan: a shared
-   `mapdef.ReviewForSharing`, `freebeamer mapdef review`, convert-time
-   provenance flags, a user-declared `provenance.redistribution` (mapdef
-   1.5), and an explicit `strip-source`. Not implemented yet. Note that every
-   converted `.mapdef` currently embeds its full source file verbatim and
-   never records a licence.
+   converted definition. **Done (2026-11-04).** `pkg/mapdef.ReviewForSharing`
+   returns a structured review (author, licence, source digest, the user's
+   `provenance.redistribution` assertion, any embedded verbatim source, and
+   the free-text fields that may hold personal/vehicle data), with severity
+   `ok` only when redistribution is asserted `permitted` and a licence is
+   recorded. `freebeamer mapdef review FILE [--require-shareable] [--json]`
+   exposes it; `freebeamer mapdef strip-source FILE --output OUT` writes a
+   copy without `extensions.*.rawDocument` (keeping `sourceSha256`, never
+   overwriting the original). `xdf convert`/`a2l convert` gained
+   `--author`/`--license`/`--source-url`, and mapdef 1.5 added the optional
+   `provenance.redistribution` field (`migrateV1_4_0ToV1_5_0`, version bump
+   only). Nothing is inferred from content, and no export is enabled. See
+   [definition-export-and-provenance-plan.md](definition-export-and-provenance-plan.md).

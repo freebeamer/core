@@ -66,7 +66,7 @@ func TestMigrateV1_0_0PromotesPreservedAxisLabelsAndBounds(t *testing.T) {
 		t.Fatalf("static values = %#v", axis.StaticValues)
 	}
 
-	wantCodes := []string{"mapdef.migrated-1.0.0-to-1.1.0", "mapdef.migrated-1.1.0-to-1.2.0", "mapdef.migrated-1.2.0-to-1.3.0", "mapdef.migrated-1.3.0-to-1.4.0"}
+	wantCodes := []string{"mapdef.migrated-1.0.0-to-1.1.0", "mapdef.migrated-1.1.0-to-1.2.0", "mapdef.migrated-1.2.0-to-1.3.0", "mapdef.migrated-1.3.0-to-1.4.0", "mapdef.migrated-1.4.0-to-1.5.0"}
 	for _, wantCode := range wantCodes {
 		found := false
 		for _, diagnostic := range migrated.ImportDiagnostics {
