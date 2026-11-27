@@ -1,7 +1,7 @@
 // Package doip implements a minimal ISO 13400 (DoIP — Diagnostics over
-// Internet Protocol) client: the TCP transport BMW's ENET diagnostic
-// interface (and MHD's WiFi-ENET adapter, which bridges to it) uses to
-// carry UDS (ISO 14229) diagnostic requests/responses. Only what's needed
+// Internet Protocol) client, carrying UDS (ISO 14229) diagnostic
+// requests/responses. BMW G-series ENET uses it; F-series uses HSFZ
+// (pkg/hsfz) instead. Only what's needed
 // to perform routing activation and exchange diagnostic messages over one
 // TCP connection is implemented — no UDP vehicle discovery, no TLS, and
 // nothing on DoIP's ECU reprogramming/emulation side. See
@@ -16,9 +16,9 @@ import "fmt"
 // package is evidenced against documents as correct for most ECUs.
 const ProtocolVersion2012 byte = 0x02
 
-// DefaultTCPPort is the standard DoIP TCP port (ISO 13400 Table 39),
-// confirmed independently to be what BMW's ENET adapter (including
-// MHD's) uses — see docs/mhd-live-monitor-v0-plan.md.
+// DefaultTCPPort is the standard DoIP TCP port (ISO 13400 Table 39).
+// MHD's WiFi-ENET adapter on the owner's F10 refused it on 2026-11-27 and
+// serves HSFZ on 6801 instead (see pkg/hsfz); pkg/enet tries both.
 const DefaultTCPPort = 13400
 
 // PayloadType is a DoIP generic header payload type (ISO 13400 Table 12).

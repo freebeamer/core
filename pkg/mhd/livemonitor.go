@@ -1,8 +1,8 @@
 // Package mhd decodes the live-monitor UDS exchange MHD Tuning's own
 // published TunerPro RT ADX file defines for BMW MG1-family DMEs: a
-// fixed request/reply pair carried over pkg/doip (ISO 13400 DoIP, the
-// transport MHD's WiFi-ENET adapter — and any compatible generic ENET
-// hardware — uses). Only the read-only monitor path is implemented; the
+// fixed request/reply pair carried over any Transport: pkg/hsfz (BMW
+// F-series ENET, what MHD's WiFi-ENET adapter was observed serving on
+// port 6801) or pkg/doip (ISO 13400), usually via pkg/enet's detection. Only the read-only monitor path is implemented; the
 // write/live-tuning (calibration RAM patching) mechanism is not
 // evidenced anywhere outside MHD's closed MHD.dll plugin and is
 // explicitly out of scope. See docs/mhd-live-monitor-v0-plan.md for the
@@ -16,7 +16,6 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/freebeamer/core/pkg/doip"
 	"github.com/freebeamer/core/pkg/expression"
 )
 
@@ -142,7 +141,7 @@ type Value struct {
 }
 
 // DecodeMonitorReply decodes a full monitor reply — as returned by
-// doip.Client.SendDiagnostic for a MonitorRequest — into one Value per
+// Transport.SendDiagnostic for a MonitorRequest — into one Value per
 // Fields entry, in Fields order.
 func DecodeMonitorReply(reply []byte) ([]Value, error) {
 	if len(reply) != MonitorReplyLength {
@@ -183,16 +182,22 @@ func ByName(values []Value, name string) (Value, bool) {
 	return Value{}, false
 }
 
-// Monitor wraps a doip.Client that has already completed DoIP routing
-// activation (doip.Client.Activate) to repeatedly issue MG1.adx's
-// monitor exchange and decode the reply.
-type Monitor struct {
-	client *doip.Client
+// Transport is anything that can carry one UDS request/reply exchange
+// to the DME: a *doip.Client past routing activation, an *hsfz.Client, or
+// the *enet.Link that pkg/enet's auto-detection returns.
+type Transport interface {
+	SendDiagnostic(request []byte, timeout time.Duration) ([]byte, error)
 }
 
-// NewMonitor wraps client for use with Read. client must already be
-// past routing activation.
-func NewMonitor(client *doip.Client) *Monitor {
+// Monitor repeatedly issues MG1.adx's monitor exchange over a Transport
+// and decodes the reply.
+type Monitor struct {
+	client Transport
+}
+
+// NewMonitor wraps client for use with Read. A *doip.Client must already
+// be past routing activation.
+func NewMonitor(client Transport) *Monitor {
 	return &Monitor{client: client}
 }
 
