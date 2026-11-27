@@ -28,9 +28,19 @@ and customer details from any published report.
 ## Procedure
 
 1. Confirm the adapter's actual transport and endpoint using adapter evidence.
-   The current CLI tries DoIP, default port 13400; this is not proof that the
-   selected vehicle/adapter uses it. If incompatible, record that result and
-   stop this procedure rather than trying arbitrary target addresses/services.
+   Trial 2026-11-27 (owner's F10 N55, MHD WiFi-ENET adapter, MHD 5.42):
+   the adapter's network is 192.168.4.0/24 with gateway/DNS 192.168.4.1.
+   TCP 13400 (DoIP) and 80 were refused, with the ignition on and while
+   MHD was reading the car. The phone's socket table showed MHD's app
+   connected to 192.168.4.1:6801 (the BMW F-series ENET/HSFZ diagnostic
+   port) and 192.168.4.1:5377 (assumed to be MHD's own adapter channel).
+   Only destination ports were observed, not MHD's traffic.
+   The CLI and mobile app now default to HSFZ on 6801 and auto-detect DoIP
+   (`pkg/enet`). If no ECU answers there, they try 13400 and 6811, then
+   sweep the host's TCP ports and probe each open one with a single UDS
+   TesterPresent. That is the only request sent while probing, and 5377
+   is skipped. Use `--no-scan` to turn the fallback off. Whether HSFZ on
+   6801 reaches the DME through MHD's adapter is still to be confirmed.
 2. Start stationary. Document ignition/engine state and adapter connection.
    Identify an independent reference and establish tolerances for each channel
    before comparison. If reference tooling cannot run simultaneously, use
@@ -48,7 +58,7 @@ and customer details from any published report.
      --device-id trial-001 \
      --capture-file testdata/private/hardware/trial-001/exchanges.jsonl \
      --buffer-file testdata/private/hardware/trial-001/samples.jsonl \
-     ADAPTER_IP:13400 \
+     ADAPTER_IP \
      > testdata/private/hardware/trial-001/readings.csv \
      2> testdata/private/hardware/trial-001/diagnostics.txt
    ```

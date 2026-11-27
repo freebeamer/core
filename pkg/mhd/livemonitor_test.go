@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/freebeamer/core/pkg/doip"
+	"github.com/freebeamer/core/pkg/hsfz"
 )
 
 // rawValues gives a known raw integer per Fields entry (by Name),
@@ -235,4 +236,48 @@ func packDoipMessage(payloadType doip.PayloadType, payload []byte) []byte {
 	binary.BigEndian.PutUint32(message[4:8], uint32(len(payload)))
 	copy(message[8:], payload)
 	return message
+}
+
+// TestMonitorReadOverHSFZ runs the same monitor exchange over pkg/hsfz,
+// the transport MHD's adapter was observed serving on port 6801.
+func TestMonitorReadOverHSFZ(t *testing.T) {
+	monitorReply := buildMonitorReply(t)
+	listener, err := net.Listen("tcp", "127.0.0.1:0")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer listener.Close()
+	go func() {
+		conn, err := listener.Accept()
+		if err != nil {
+			return
+		}
+		defer conn.Close()
+		var header [6]byte
+		if _, err := io.ReadFull(conn, header[:]); err != nil {
+			t.Errorf("gateway: %v", err)
+			return
+		}
+		length, _ := hsfz.ParseHeader(header)
+		body := make([]byte, length)
+		io.ReadFull(conn, body)
+		if !bytes.Equal(body[2:], MonitorRequest) {
+			t.Errorf("gateway: uds request = % X, want % X", body[2:], MonitorRequest)
+		}
+		conn.Write(hsfz.PackFrame(hsfz.ControlAcknowledge, body))
+		conn.Write(hsfz.PackFrame(hsfz.ControlDiagnostic, append([]byte{body[1], body[0]}, monitorReply...)))
+	}()
+
+	client, err := hsfz.Dial(listener.Addr().String(), time.Second)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer client.Close()
+	values, err := NewMonitor(client).Read(time.Second)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got, ok := ByName(values, "RPM"); !ok || got.Raw != rawValues["RPM"] {
+		t.Fatalf("ByName(\"RPM\") = %+v, %v", got, ok)
+	}
 }

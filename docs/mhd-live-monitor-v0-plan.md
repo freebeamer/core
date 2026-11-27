@@ -363,6 +363,31 @@ DoIP read:
 - No test here uses real hardware. `go build ./... && go vet ./... &&
   gofmt -l cmd pkg && go test ./... -count=1` all pass as of this writing.
 
+## Hardware trial 2026-11-27: HSFZ, not DoIP
+
+MHD's WiFi-ENET adapter on the owner's F10 refused TCP 13400 every time,
+including with the ignition on and while MHD's own app was reading codes.
+MHD's app was connected to 192.168.4.1:6801. That's the BMW F-series ENET
+diagnostic port, which speaks HSFZ rather than ISO 13400 DoIP. Only the
+destination port was observed, from the phone's own socket table. MHD's
+traffic was not captured or inspected, consistent with this plan's
+no-reverse-engineering stance.
+
+As a result:
+- `pkg/hsfz` implements HSFZ framing from open-source BMW ENET
+  documentation.
+- `pkg/enet` tries HSFZ on 6801 first, detects DoIP, and falls back to a
+  port scan.
+- `mhd.Monitor` accepts any `Transport`.
+
+The mobile app mirrors this in `EnetDataSourceImpl`.
+
+Still unconfirmed against the car:
+- the tester address 0xF4 and DME address 0x12;
+- whether the gateway's HSFZ alive check (0x0012) needs a reply;
+- whether the MG1 monitor request is answered by this car's DME at
+  all. The car is an N55; the request was written for MG1-family DMEs.
+
 ## Next steps
 
 - **Validate against real hardware.** The user has an MHD WiFi-ENET
